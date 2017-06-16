@@ -67,21 +67,28 @@
     this.plyr = plyr;
     this.plyrContainer = plyr.getContainer();
     this.adDisplayContainer;
-    this.plyrAdContainer = _setupAds(plyr);
 
-    this.plyrAdContainer.addEventListener('click', function() {
-      this.playAds();
-    }.bind(this), false);
+    if (window.google) {
+        // Add ad overlay to DOM.
+        this.plyrAdContainer = _setupAds(plyr);
 
-    this.setUpIMA();
+        // Setup IMA.
+        this.setUpIMA();
+
+        // Bind click event to ad overlay.
+        this.plyrAdContainer.addEventListener('click', function() {
+            this.playAds();
+        }.bind(this), false);
+    }
   }
 
   PlyrAds.prototype.playAds = _playAds;
   PlyrAds.prototype.setUpIMA = _setUpIMA;
   PlyrAds.prototype.createAdDisplayContainer = _createAdDisplayContainer;
-  PlyrAds.prototype.onAdEvent = onAdEvent;
-  PlyrAds.prototype.onAdsManagerLoaded = onAdsManagerLoaded;
-  PlyrAds.prototype.onContentResumeRequested = onContentResumeRequested;
+  PlyrAds.prototype.onAdEvent = _onAdEvent;
+  PlyrAds.prototype.onAdError = _onAdError;
+  PlyrAds.prototype.onAdsManagerLoaded = _onAdsManagerLoaded;
+  PlyrAds.prototype.onContentResumeRequested = _onContentResumeRequested;
 
   function _setupAds(player) {
       var type = 'div';
@@ -120,7 +127,6 @@
     // Create the ad display container.
     this.createAdDisplayContainer();
     // Create ads loader.
-
     this.adsLoader = new google.ima.AdsLoader(this.adDisplayContainer);
     // Listen and respond to ads loaded and error events.
     this.adsLoader.addEventListener(
@@ -131,8 +137,8 @@
         false);
     this.adsLoader.addEventListener(
         google.ima.AdErrorEvent.Type.AD_ERROR,
-        function(e) {
-            this.onAdError(e);
+        function(adError) {
+            this.plyrAdContainer.remove();
         }.bind(this),
         false);
 
@@ -145,8 +151,8 @@
   function _createAdDisplayContainer() {
     // We assume the adContainer is the DOM id of the element that will house
     // the ads.
-    this.adDisplayContainer = new google.ima.AdDisplayContainer(
-        this.plyrAdContainer);
+   this.adDisplayContainer = new google.ima.AdDisplayContainer(
+            this.plyrAdContainer);
   }
 
   function _playAds() {
@@ -167,7 +173,7 @@
     }
   }
 
-  function onAdsManagerLoaded(adsManagerLoadedEvent) {
+  function _onAdsManagerLoaded(adsManagerLoadedEvent) {
     // Get the ads manager.
     var adsRenderingSettings = new google.ima.AdsRenderingSettings();
     adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
@@ -208,7 +214,7 @@
         }.bind(this));
   }
 
-  function onAdEvent(adEvent) {
+  function _onAdEvent(adEvent) {
     // Retrieve the ad from the event. Some events (e.g. ALL_ADS_COMPLETED)
     // don't have ad object associated.
     var ad = adEvent.getAd();
@@ -241,6 +247,11 @@
         // This event indicates the ad has finished - the video player
         // can perform appropriate UI actions, such as removing the timer for
         // remaining time detection.
+
+        // Start playing the video.
+        this.plyr.play();
+        // Remove ads container.
+        this.plyrAdContainer.remove();
         if (ad.isLinear()) {
           clearInterval(this.intervalTimer);
         }
@@ -248,30 +259,31 @@
     }
   }
 
-  function onAdError(adErrorEvent) {
+  function _onAdError(adErrorEvent) {
     // Handle the error logging.
     this.adsManager.destroy();
     throw new Error(adErrorEvent.getError());
   }
 
-  function onContentResumeRequested() {
+  function _onContentResumeRequested() {
     // Start playing the video.
     this.plyr.play();
-
-    // Remove ads overlay container.
-    this.plyrAdContainer.remove();
     // This function is where you should ensure that your UI is ready
     // to play content. It is the responsibility of the Publisher to
     // implement this function when necessary.
     // setupUIForContent();
   }
 
-
+  // Setup function
   function setup(plyr, config) {
-    if (!plyr) return;
+    // Bail if plyr instances aren't found.
+    if (!plyr) return false;
 
+    // Loop through plyr instances and add ads.
     plyr.forEach(instance => {
-        instance.plyrAds = new PlyrAds(instance, config);
+        instance.on('ready', () => {
+            instance.plyrAds = new PlyrAds(instance, config);
+        });
     });
   }
 
