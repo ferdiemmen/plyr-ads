@@ -252,7 +252,7 @@
 
   function onAdError(adErrorEvent) {
     // Handle the error logging.
-    adsManager.destroy();
+    this.adsManager.destroy();
     throw new Error(adErrorEvent.getError());
   }
 
@@ -270,7 +270,11 @@
 
 
   function setup(plyr, config) {
-    return new PlyrAds(plyr, config);
+    if (!plyr) return;
+
+    plyr.forEach(instance => {
+        instance.plyrAds = new PlyrAds(instance, config);
+    });
   }
 
 
