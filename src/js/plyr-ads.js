@@ -1,6 +1,6 @@
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v0.0.3
+// plyr-ads.js v0.0.4
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -72,7 +72,7 @@
         }
 
         // Add ad overlay to DOM.
-        this.plyrAdContainer = _setupAds(plyr);
+        this.plyrAdContainer = setupAds(plyr);
 
         // Setup IMA.
         this.setUpIMA();
@@ -91,13 +91,25 @@
     PlyrAds.prototype.onAdsManagerLoaded = _onAdsManagerLoaded;
     PlyrAds.prototype.onContentResumeRequested = _onContentResumeRequested;
 
-    function _setupAds(player) {
+    function setupAds(plyr) {
         let type = 'div';
         let attributes = {
             class: 'plyr-ads',
             style: 'position: absolute;top: 0;left: 0;right: 0;bottom: 0;width: 100% !important;height: 100% !important;z-index: 10;overflow: hidden;'
         }
-        return _insertElement(type, player.getContainer(), attributes);
+        let plyrAdContainer = _insertElement(type, plyr.getContainer(), attributes);
+        
+        let skipButton = _insertElement('button', plyr.getContainer(), {
+            class: 'plyr-ads__skip',
+            style: 'position: absolute;z-index: 11;'
+        });
+        skipButton.textContent = 'Skip ad';
+        skipButton.addEventListener('click', () => {
+            plyrAdContainer.remove();
+            plyr.play();
+        });
+
+        return plyrAdContainer;
     }
 
     // Prepend child
@@ -250,7 +262,8 @@
                     // the remaining time.
                     this.intervalTimer = setInterval(
                         function () {
-                            let remainingTime = this.adsManager.getRemainingTime();
+                            let remainingTime = Math.round(this.adsManager.getRemainingTime());
+                            console.log(remainingTime);
                         }.bind(this),
                         300); // every 300ms
                 }
@@ -296,9 +309,12 @@
 
         // Loop through plyr instances and add ads.
         plyr.forEach(instance => {
-            instance.on('ready', () => {
-                instance.plyrAds = new PlyrAds(instance, config);
-            });
+            // Only add ads to video instances.
+            if (instance.getType() !== 'audio') {   
+                instance.on('ready', () => {
+                    instance.plyrAds = new PlyrAds(instance, config);
+                });
+            }
         });
     }
 
