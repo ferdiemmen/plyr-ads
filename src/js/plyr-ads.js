@@ -1,6 +1,6 @@
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v0.0.1
+// plyr-ads.js v0.0.2
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -30,7 +30,7 @@
   // of any kind either expressed or implied.
 
   // Check variable types
-  let _is = {
+  const _is = {
       object: function(input) {
           return input !== null && typeof(input) === 'object';
       },
@@ -68,18 +68,21 @@
     this.plyrContainer = plyr.getContainer();
     this.adDisplayContainer;
 
-    if (window.google) {
-        // Add ad overlay to DOM.
-        this.plyrAdContainer = _setupAds(plyr);
-
-        // Setup IMA.
-        this.setUpIMA();
-
-        // Bind click event to ad overlay.
-        this.plyrAdContainer.addEventListener('click', function() {
-            this.playAds();
-        }.bind(this), false);
+    // Check if the Google IMA3 SDK is present. 
+    if (!window.google) {
+        return false;
     }
+
+    // Add ad overlay to DOM.
+    this.plyrAdContainer = _setupAds(plyr);
+
+    // Setup IMA.
+    this.setUpIMA();
+
+    // Bind click event to ad overlay.
+    this.plyrAdContainer.addEventListener('click', function() {
+        this.playAds();
+    }.bind(this), false);
   }
 
   PlyrAds.prototype.playAds = _playAds;
@@ -91,8 +94,8 @@
   PlyrAds.prototype.onContentResumeRequested = _onContentResumeRequested;
 
   function _setupAds(player) {
-      var type = 'div';
-      var attributes = {
+      let type = 'div';
+      let attributes = {
           class: 'plyr-ads',
           style: 'position: absolute;top: 0;left: 0;right: 0;bottom: 0;width: 100% !important;height: 100% !important;z-index: 10;overflow: hidden;'
       }
@@ -106,7 +109,7 @@
 
   // Set attributes
   function _setAttributes(element, attributes) {
-      for (var key in attributes) {
+      for (let key in attributes) {
           element.setAttribute(key, (_is.boolean(attributes[key]) && attributes[key]) ? '' : attributes[key]);
       }
   }
@@ -114,7 +117,7 @@
   // Insert a HTML element
   function _insertElement(type, parent, attributes) {
       // Create a new <element>
-      var element = document.createElement(type);
+      let element = document.createElement(type);
 
       // Set all passed attributes
       _setAttributes(element, attributes);
@@ -143,7 +146,7 @@
         false);
 
     // Request video ads.
-    var adsRequest = new google.ima.AdsRequest();
+    let adsRequest = new google.ima.AdsRequest();
     adsRequest.adTagUrl = 'https://search.spotxchange.com/vast/2.0/85394?VPAID=JS&media_transcoding=low&content_page_url=https%3A//local.gamer.nl%3A3000/artikelen/nieuws/met-een-video_url/&player_width=640&player_height=360&cb=43460';
     this.adsLoader.requestAds(adsRequest);
   }
@@ -175,7 +178,7 @@
 
   function _onAdsManagerLoaded(adsManagerLoadedEvent) {
     // Get the ads manager.
-    var adsRenderingSettings = new google.ima.AdsRenderingSettings();
+    let adsRenderingSettings = new google.ima.AdsRenderingSettings();
     adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
     this.adsManager = adsManagerLoadedEvent.getAdsManager(adsRenderingSettings);
 
@@ -212,12 +215,23 @@
         function(e) {
             this.onAdEvent(e);
         }.bind(this));
+
+    // Listen to the resizing of the window. And resize
+    // ad accordingly.
+    window.addEventListener(
+        'resize',
+        function(e) {
+            this.adsManager.resize(
+                this.plyrContainer.offsetWidth,
+                this.plyrContainer.offsetHeight,
+                google.ima.ViewMode.NORMAL);
+        }.bind(this));
   }
 
   function _onAdEvent(adEvent) {
     // Retrieve the ad from the event. Some events (e.g. ALL_ADS_COMPLETED)
     // don't have ad object associated.
-    var ad = adEvent.getAd();
+    let ad = adEvent.getAd();
     switch (adEvent.type) {
       case google.ima.AdEvent.Type.LOADED:
         // This is the first event sent for an ad - it is possible to
@@ -238,7 +252,7 @@
           // the remaining time.
           this.intervalTimer = setInterval(
               function() {
-                var remainingTime = this.adsManager.getRemainingTime();
+                let remainingTime = this.adsManager.getRemainingTime();
               }.bind(this),
               300); // every 300ms
         }
