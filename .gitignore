@@ -1,0 +1,7 @@
+node_modules
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+aws.json
+*.mp4
+*.vtt
