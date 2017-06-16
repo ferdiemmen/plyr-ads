@@ -29,14 +29,6 @@
   // Note that this example is provided "as is", WITHOUT WARRANTY
   // of any kind either expressed or implied.
 
-  let adsManager;
-  let adsLoader;
-  let adDisplayContainer;
-  let intervalTimer;
-  let plyrAdContainer;
-  let videoPlayer;
-  let videoPlayerContainer;
-
   // Check variable types
   let _is = {
       object: function(input) {
@@ -69,15 +61,25 @@
   };
 
   function PlyrAds(plyr, config) {
-    videoPlayer = plyr;
-    videoPlayerContainer = plyr.getContainer();
+    this.adsManager;
+    this.adsLoader;
+    this.intervalTimer;
+    this.plyr = plyr;
+    this.plyrContainer = plyr.getContainer();
+    this.adDisplayContainer;
+    this.plyrAdContainer = _setupAds(plyr);
 
-    plyrAdContainer = _setupAds(plyr);
+    this.plyrAdContainer.addEventListener('click', function() {
+      this.playAds();
+    }.bind(this), false);
 
-
-    plyrAdContainer.addEventListener('click', playAds, false);
-    _setUpIMA();
+    this.setUpIMA();
   }
+
+  PlyrAds.prototype.playAds = _playAds;
+  PlyrAds.prototype.setUpIMA = _setUpIMA;
+  PlyrAds.prototype.createAdDisplayContainer = _createAdDisplayContainer;
+  PlyrAds.prototype.onAdsManagerLoaded = onAdsManagerLoaded;
 
   function _setupAds(player) {
       var type = 'div';
@@ -114,15 +116,18 @@
 
   function _setUpIMA() {
     // Create the ad display container.
-    createAdDisplayContainer();
+    this.createAdDisplayContainer();
     // Create ads loader.
-    adsLoader = new google.ima.AdsLoader(adDisplayContainer);
+
+    this.adsLoader = new google.ima.AdsLoader(this.adDisplayContainer);
     // Listen and respond to ads loaded and error events.
-    adsLoader.addEventListener(
+    this.adsLoader.addEventListener(
         google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
-        onAdsManagerLoaded,
+        function(e) {
+          this.onAdsManagerLoaded(e);
+        }.bind(this),
         false);
-    adsLoader.addEventListener(
+    this.adsLoader.addEventListener(
         google.ima.AdErrorEvent.Type.AD_ERROR,
         onAdError,
         false);
@@ -130,58 +135,61 @@
     // Request video ads.
     var adsRequest = new google.ima.AdsRequest();
     adsRequest.adTagUrl = 'https://search.spotxchange.com/vast/2.0/85394?VPAID=JS&media_transcoding=low&content_page_url=https%3A//local.gamer.nl%3A3000/artikelen/nieuws/met-een-video_url/&player_width=640&player_height=360&cb=43460';
-    adsLoader.requestAds(adsRequest);
+    this.adsLoader.requestAds(adsRequest);
   }
 
-  function createAdDisplayContainer() {
+  function _createAdDisplayContainer() {
     // We assume the adContainer is the DOM id of the element that will house
     // the ads.
-    adDisplayContainer = new google.ima.AdDisplayContainer(
-        plyrAdContainer);
+    this.adDisplayContainer = new google.ima.AdDisplayContainer(
+        this.plyrAdContainer);
   }
 
-  function playAds() {
-    // Initialize the container. Must be done via a user action on mobile devices.
-    adDisplayContainer.initialize();
+  function _playAds() {
 
-    try {
-      // Initialize the ads manager. Ad rules playlist will start at this time.
-      adsManager.init(videoPlayerContainer.offsetWidth, videoPlayerContainer.offsetHeight, google.ima.ViewMode.NORMAL);
-      // Call play to start showing the ad. Single video and overlay ads will
-      // start at this time; the call will be ignored for ad rules.
-      adsManager.start();
-    } catch (adError) {
-      // An error may be thrown if there was a problem with the VAST response.
-      videoPlayer.play();
-      plyrAdContainer.remove();
-    }
+    // Initialize the container. Must be done via a user action on mobile devices.
+    this.adDisplayContainer.initialize();
+
+    debugger;
+
+    // Initialize the ads manager. Ad rules playlist will start at this time.
+    this.adsManager.init(this.plyrContainer.offsetWidth, this.plyrContainer.offsetHeight, google.ima.ViewMode.NORMAL);
+    // Call play to start showing the ad. Single video and overlay ads will
+    // start at this time; the call will be ignored for ad rules.
+    this.adsManager.start();
+    // try {
+    // } catch (adError) {
+    //   // An error may be thrown if there was a problem with the VAST response.
+    //   this.plyr.play();
+    //   this.plyrAdContainer.remove();
+    // }
   }
 
   function onAdsManagerLoaded(adsManagerLoadedEvent) {
     // Get the ads manager.
     var adsRenderingSettings = new google.ima.AdsRenderingSettings();
     adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
-    adsManager = adsManagerLoadedEvent.getAdsManager(adsRenderingSettings);
+    this.adsManager = adsManagerLoadedEvent.getAdsManager(adsRenderingSettings);
 
     // Add listeners to the required events.
-    adsManager.addEventListener(
+    this.adsManager.addEventListener(
         google.ima.AdErrorEvent.Type.AD_ERROR,
         onAdError);
-    adsManager.addEventListener(
+    this.adsManager.addEventListener(
         google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
         onContentResumeRequested);
-    adsManager.addEventListener(
+    this.adsManager.addEventListener(
         google.ima.AdEvent.Type.ALL_ADS_COMPLETED,
         onAdEvent);
 
     // Listen to any additional events, if necessary.
-    adsManager.addEventListener(
+    this.adsManager.addEventListener(
         google.ima.AdEvent.Type.LOADED,
         onAdEvent);
-    adsManager.addEventListener(
+    this.adsManager.addEventListener(
         google.ima.AdEvent.Type.STARTED,
         onAdEvent);
-    adsManager.addEventListener(
+    this.adsManager.addEventListener(
         google.ima.AdEvent.Type.COMPLETE,
         onAdEvent);
   }
@@ -197,8 +205,8 @@
         if (!ad.isLinear()) {
           // Position AdDisplayContainer correctly for overlay.
           // Use ad.width and ad.height.
-          videoPlayer.play();
-          plyrAdContainer.remove();
+          this.plyr.play();
+          this.plyrAdContainer.remove();
         }
         break;
       case google.ima.AdEvent.Type.STARTED:
@@ -234,10 +242,10 @@
 
   function onContentResumeRequested() {
     // Start
-    videoPlayer.play();
+    this.plyr.play();
 
     // Remove ads overlay container.
-    plyrAdContainer.remove();
+    this.plyrAdContainer.remove();
     // This function is where you should ensure that your UI is ready
     // to play content. It is the responsibility of the Publisher to
     // implement this function when necessary.
