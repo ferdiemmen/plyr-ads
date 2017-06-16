@@ -79,7 +79,9 @@
   PlyrAds.prototype.playAds = _playAds;
   PlyrAds.prototype.setUpIMA = _setUpIMA;
   PlyrAds.prototype.createAdDisplayContainer = _createAdDisplayContainer;
+  PlyrAds.prototype.onAdEvent = onAdEvent;
   PlyrAds.prototype.onAdsManagerLoaded = onAdsManagerLoaded;
+  PlyrAds.prototype.onContentResumeRequested = onContentResumeRequested;
 
   function _setupAds(player) {
       var type = 'div';
@@ -129,7 +131,9 @@
         false);
     this.adsLoader.addEventListener(
         google.ima.AdErrorEvent.Type.AD_ERROR,
-        onAdError,
+        function(e) {
+            this.onAdError(e);
+        }.bind(this),
         false);
 
     // Request video ads.
@@ -174,24 +178,36 @@
     // Add listeners to the required events.
     this.adsManager.addEventListener(
         google.ima.AdErrorEvent.Type.AD_ERROR,
-        onAdError);
+        function(e) {
+            this.onAdError(e);
+        }.bind(this));
     this.adsManager.addEventListener(
         google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
-        onContentResumeRequested);
+        function(e) {
+            this.onContentResumeRequested(e);
+        }.bind(this));
     this.adsManager.addEventListener(
         google.ima.AdEvent.Type.ALL_ADS_COMPLETED,
-        onAdEvent);
+        function(e) {
+            this.onAdEvent(e);
+        }.bind(this));
 
     // Listen to any additional events, if necessary.
     this.adsManager.addEventListener(
         google.ima.AdEvent.Type.LOADED,
-        onAdEvent);
+        function(e) {
+            this.onAdEvent(e);
+        }.bind(this));
     this.adsManager.addEventListener(
         google.ima.AdEvent.Type.STARTED,
-        onAdEvent);
+        function(e) {
+            this.onAdEvent(e);
+        }.bind(this));
     this.adsManager.addEventListener(
         google.ima.AdEvent.Type.COMPLETE,
-        onAdEvent);
+        function(e) {
+            this.onAdEvent(e);
+        }.bind(this));
   }
 
   function onAdEvent(adEvent) {
@@ -216,10 +232,10 @@
         if (ad.isLinear()) {
           // For a linear ad, a timer can be started to poll for
           // the remaining time.
-          intervalTimer = setInterval(
+          this.intervalTimer = setInterval(
               function() {
-                var remainingTime = adsManager.getRemainingTime();
-              },
+                var remainingTime = this.adsManager.getRemainingTime();
+              }.bind(this),
               300); // every 300ms
         }
         break;
@@ -228,7 +244,7 @@
         // can perform appropriate UI actions, such as removing the timer for
         // remaining time detection.
         if (ad.isLinear()) {
-          clearInterval(intervalTimer);
+          clearInterval(this.intervalTimer);
         }
         break;
     }
