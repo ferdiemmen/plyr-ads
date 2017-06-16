@@ -154,19 +154,17 @@
     // Initialize the container. Must be done via a user action on mobile devices.
     this.adDisplayContainer.initialize();
 
-    debugger;
-
     // Initialize the ads manager. Ad rules playlist will start at this time.
     this.adsManager.init(this.plyrContainer.offsetWidth, this.plyrContainer.offsetHeight, google.ima.ViewMode.NORMAL);
     // Call play to start showing the ad. Single video and overlay ads will
     // start at this time; the call will be ignored for ad rules.
-    this.adsManager.start();
-    // try {
-    // } catch (adError) {
-    //   // An error may be thrown if there was a problem with the VAST response.
-    //   this.plyr.play();
-    //   this.plyrAdContainer.remove();
-    // }
+    try {
+        this.adsManager.start();
+    } catch (adError) {
+      // An error may be thrown if there was a problem with the VAST response.
+      this.plyr.play();
+      this.plyrAdContainer.remove();
+    }
   }
 
   function onAdsManagerLoaded(adsManagerLoadedEvent) {
@@ -257,7 +255,7 @@
   }
 
   function onContentResumeRequested() {
-    // Start
+    // Start playing the video.
     this.plyr.play();
 
     // Remove ads overlay container.
