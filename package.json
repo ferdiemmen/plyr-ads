@@ -1,6 +1,6 @@
 {
   "name": "plyr-ads",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Ads plugin for the awesome Plyr media player",
   "main": "src/js/plyr-ads.js",
   "dependencies": {},
