@@ -27,6 +27,16 @@
 }(typeof window !== 'undefined' ? window : this, function (window, document) {
     'use strict';
 
+    // Default config
+    const defaults = {
+        container: 'plyr-ads',
+        classes: [],
+        skipButton: {
+            enabled: true,
+            text: 'Skip ad'
+        }
+    };
+
     // Check variable types.
     const _is = {
         object: function (input) {
@@ -58,11 +68,12 @@
         }
     };
 
-    function PlyrAds(plyr, config) {
+    function PlyrAds(plyr, options) {
         this.adsManager;
         this.adsLoader;
         this.intervalTimer;
         this.plyr = plyr;
+        this.options = options;
         this.plyrContainer = plyr.getContainer();
         this.adDisplayContainer;
 
@@ -71,53 +82,44 @@
             return false;
         }
 
-        // Add ad overlay to DOM.
-        this.plyrAdContainer = setupAds(plyr);
+        // Add ad container to DOM.
+        this.createPlyrAdsContainer();
+
+        // Add ad skip button to DOM.
+        this.createPlyrAdsSkipButton();
 
         // Setup IMA.
         this.setUpIMA();
-
-        // Bind click event to ad overlay.
-        this.plyrAdContainer.addEventListener('click', function () {
-            this.playAds();
-        }.bind(this), false);
     }
 
     PlyrAds.prototype.playAds = _playAds;
+    PlyrAds.prototype.playVideo = _playVideo;
     PlyrAds.prototype.setUpIMA = _setUpIMA;
     PlyrAds.prototype.createAdDisplayContainer = _createAdDisplayContainer;
+    PlyrAds.prototype.createPlyrAdsSkipButton = _createPlyrAdsSkipButton;
+    PlyrAds.prototype.createPlyrAdsContainer = _createPlyrAdsContainer;
     PlyrAds.prototype.onAdEvent = _onAdEvent;
     PlyrAds.prototype.onAdError = _onAdError;
     PlyrAds.prototype.onAdsManagerLoaded = _onAdsManagerLoaded;
     PlyrAds.prototype.onContentResumeRequested = _onContentResumeRequested;
 
-    function setupAds(plyr) {
-        let type = 'div';
-        let attributes = {
-            class: 'plyr-ads',
-            style: 'position: absolute;top: 0;left: 0;right: 0;bottom: 0;width: 100% !important;height: 100% !important;z-index: 10;overflow: hidden;'
-        }
-        let plyrAdContainer = _insertElement(type, plyr.getContainer(), attributes);
-        
-        let skipButton = _insertElement('button', plyr.getContainer(), {
-            class: 'plyr-ads__skip',
-            style: 'position: absolute;' + 
-                   'z-index: 11;' +
-                   'top: 1em;' +
-                   'right: 0;' +
-                   'border: none;' +
-                   'font-size: 1.2em;' +
-                   'padding: 10px 20px;' +
-                   'background: rgba(40,40,40,.8);' +
-                   'color: #fff;'
+    function _createPlyrAdsContainer() {
+        this.plyrAdContainer = _insertElement('div', this.plyr.getContainer(), {
+            class: 'plyr-ads'
         });
-        skipButton.textContent = 'Skip ad';
-        skipButton.addEventListener('click', () => {
-            plyrAdContainer.remove();
-            plyr.play();
-        });
+        this.plyrAdContainer.addEventListener('click', function () {
+            this.playAds();
+        }.bind(this), false);
+    }
 
-        return plyrAdContainer;
+    function _createPlyrAdsSkipButton() {
+        this.skipButton = _insertElement('button', this.plyr.getContainer(), {
+            class: 'plyr-ads__skip-button'
+        });
+        this.skipButton.textContent = this.options.skipButton.text;
+        this.skipButton.addEventListener('click', () => {
+            this.playVideo();
+        });
     }
 
     // Prepend child
@@ -142,6 +144,12 @@
 
         // Inject the new element
         return _prependChild(parent, element);
+    }
+
+    function _playVideo() {
+        this.plyrAdContainer.remove();
+        this.plyrAdsSkipButton.remove();
+        this.plyr.play();
     }
 
     function _setUpIMA() {
@@ -271,7 +279,6 @@
                     this.intervalTimer = setInterval(
                         function () {
                             let remainingTime = Math.round(this.adsManager.getRemainingTime());
-                            console.log(remainingTime);
                         }.bind(this),
                         300); // every 300ms
                 }
@@ -310,17 +317,58 @@
         // setupUIForContent();
     }
 
+    // Deep extend/merge destination object with N more objects
+    // http://andrewdupont.net/2009/08/28/deep-extending-objects-in-javascript/
+    // Removed call to arguments.callee (used explicit function name instead)
+    function _extend() {
+        // Get arguments
+        var objects = arguments;
+
+        // Bail if nothing to merge
+        if (!objects.length) {
+            return;
+        }
+
+        // Return first if specified but nothing to merge
+        if (objects.length === 1) {
+            return objects[0];
+        }
+
+        // First object is the destination
+        var destination = Array.prototype.shift.call(objects),
+            length      = objects.length;
+
+        // Loop through all objects to merge
+        for (var i = 0; i < length; i++) {
+            var source = objects[i];
+
+            for (var property in source) {
+                if (source[property] && source[property].constructor && source[property].constructor === Object) {
+                    destination[property] = destination[property] || {};
+                    _extend(destination[property], source[property]);
+                } else {
+                    destination[property] = source[property];
+                }
+            }
+        }
+
+        return destination;
+    }
+
     // Setup function
     function setup(plyr, config) {
         // Bail if plyr instances aren't found.
         if (!plyr) return false;
+
+        // Set options from defaults and config.
+        let options = _extend({}, defaults, config);
 
         // Loop through plyr instances and add ads.
         plyr.forEach(instance => {
             // Only add ads to video instances.
             if (instance.getType() !== 'audio') {   
                 instance.on('ready', () => {
-                    instance.plyrAds = new PlyrAds(instance, config);
+                    instance.plyrAds = new PlyrAds(instance, options);
                 });
             }
         });
