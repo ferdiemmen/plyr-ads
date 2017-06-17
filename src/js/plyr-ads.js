@@ -85,11 +85,11 @@
         // Add ad container to DOM.
         this.createPlyrAdsContainer();
 
-        // Add ad skip button to DOM.
-        this.createPlyrAdsSkipButton();
-
         // Setup IMA.
         this.setUpIMA();
+
+        // Add ad skip button to DOM.
+        this.createPlyrAdsSkipButton();
     }
 
     PlyrAds.prototype.playAds = _playAds;
@@ -102,24 +102,25 @@
     PlyrAds.prototype.onAdError = _onAdError;
     PlyrAds.prototype.onAdsManagerLoaded = _onAdsManagerLoaded;
     PlyrAds.prototype.onContentResumeRequested = _onContentResumeRequested;
+    PlyrAds.prototype.onContentSkippable = _onContentSkippable;
 
     function _createPlyrAdsContainer() {
         this.plyrAdContainer = _insertElement('div', this.plyr.getContainer(), {
             class: 'plyr-ads'
         });
-        this.plyrAdContainer.addEventListener('click', function () {
+        this.plyrAdContainer.addEventListener('click', () => {
             this.playAds();
-        }.bind(this), false);
+        }, false);
     }
 
     function _createPlyrAdsSkipButton() {
-        this.skipButton = _insertElement('button', this.plyr.getContainer(), {
+        this.plyrAdSkipButton = _insertElement('button', this.plyr.getContainer(), {
             class: 'plyr-ads__skip-button'
         });
-        this.skipButton.textContent = this.options.skipButton.text;
-        this.skipButton.addEventListener('click', () => {
+        this.plyrAdSkipButton.textContent = this.options.skipButton.text;
+        this.plyrAdSkipButton.addEventListener('click', () => {
             this.playVideo();
-        });
+        }, false);
     }
 
     // Prepend child
@@ -148,7 +149,7 @@
 
     function _playVideo() {
         this.plyrAdContainer.remove();
-        this.plyrAdsSkipButton.remove();
+        this.plyrAdSkipButton.remove();
         this.plyr.play();
     }
 
@@ -173,7 +174,7 @@
 
         // Request video ads.
         let adsRequest = new google.ima.AdsRequest();
-        adsRequest.adTagUrl = 'https://search.spotxchange.com/vast/2.0/85394?VPAID=JS&media_transcoding=low&content_page_url=https%3A//local.gamer.nl%3A3000/artikelen/nieuws/met-een-video_url/&player_width=640&player_height=360&cb=43460';
+        adsRequest.adTagUrl = this.options.adTagUrl;
         this.adsLoader.requestAds(adsRequest);
     }
 
@@ -197,8 +198,7 @@
             this.adsManager.start();
         } catch (adError) {
             // An error may be thrown if there was a problem with the VAST response.
-            this.plyr.play();
-            this.plyrAdContainer.remove();
+            this.playVideo();
         }
     }
 
@@ -218,6 +218,11 @@
             google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
             function (e) {
                 this.onContentResumeRequested(e);
+            }.bind(this));
+        this.adsManager.addEventListener(
+            google.ima.AdEvent.Type.SKIPPABLE_STATE_CHANGED,
+            function (e) {
+                this.onContentSkippable(e);
             }.bind(this));
         this.adsManager.addEventListener(
             google.ima.AdEvent.Type.ALL_ADS_COMPLETED,
@@ -265,8 +270,7 @@
                 if (!ad.isLinear()) {
                     // Position AdDisplayContainer correctly for overlay.
                     // Use ad.width and ad.height.
-                    this.plyr.play();
-                    this.plyrAdContainer.remove();
+                    this.playVideo();
                 }
                 break;
             case google.ima.AdEvent.Type.STARTED:
@@ -289,9 +293,7 @@
                 // remaining time detection.
 
                 // Start playing the video.
-                this.plyr.play();
-                // Remove ads container.
-                this.plyrAdContainer.remove();
+                this.playVideo();
 
                 if (ad.isLinear()) {
                     clearInterval(this.intervalTimer);
@@ -308,13 +310,15 @@
 
     function _onContentResumeRequested() {
         // Start playing the video.
-        this.plyr.play();
-        // Remove ads container.
-        this.plyrAdContainer.remove();
+        this.playVideo();
         // This function is where you should ensure that your UI is ready
         // to play content. It is the responsibility of the Publisher to
         // implement this function when necessary.
         // setupUIForContent();
+    }
+
+    function _onContentSkippable() {
+        this.plyrAdSkipButton.style.display = 'block';
     }
 
     // Deep extend/merge destination object with N more objects
