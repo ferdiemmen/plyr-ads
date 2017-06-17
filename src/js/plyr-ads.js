@@ -1,6 +1,6 @@
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v0.0.4
+// plyr-ads.js v0.0.5
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -101,7 +101,15 @@
         
         let skipButton = _insertElement('button', plyr.getContainer(), {
             class: 'plyr-ads__skip',
-            style: 'position: absolute;z-index: 11;'
+            style: 'position: absolute;' + 
+                   'z-index: 11;' +
+                   'top: 1em;' +
+                   'right: 0;' +
+                   'border: none;' +
+                   'font-size: 1.2em;' +
+                   'padding: 10px 20px;' +
+                   'background: rgba(40,40,40,.8);' +
+                   'color: #fff;'
         });
         skipButton.textContent = 'Skip ad';
         skipButton.addEventListener('click', () => {
