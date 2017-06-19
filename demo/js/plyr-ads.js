@@ -108,13 +108,13 @@
         this.plyrAdContainer = _insertElement('div', this.plyr.getContainer(), {
             class: 'plyr-ads'
         });
-        this.plyrAdContainer.addEventListener('click', () => {
+        this.plyrAdContainer.parentNode.addEventListener('touchend', () => {
             this.playAds();
         }, false);
     }
 
     function _createPlyrAdsSkipButton() {
-        this.plyrAdSkipButton = _insertElement('button', this.plyr.getContainer(), {
+        this.plyrAdSkipButton = _insertElement('touchend', this.plyr.getContainer(), {
             class: 'plyr-ads__skip-button'
         });
         this.plyrAdSkipButton.textContent = this.options.skipButton.text;
@@ -371,9 +371,7 @@
         plyr.forEach(instance => {
             // Only add ads to video instances.
             if (instance.getType() !== 'audio') {
-                instance.on('ready', () => {
-                    instance.plyrAds = new PlyrAds(instance, options);
-                });
+                instance.plyrAds = new PlyrAds(instance, options);
             }
         });
     }

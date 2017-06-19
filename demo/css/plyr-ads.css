@@ -1,13 +1,13 @@
+.plyr--ready {
+  position: relative; }
+
 .plyr-ads {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 10;
-  overflow: hidden; }
+  z-index: 10; }
   .plyr-ads__skip-button {
     position: absolute;
     z-index: 11;
