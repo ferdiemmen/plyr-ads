@@ -4,6 +4,25 @@ main > section {
   display: flex;
 }
 
-main > section div {
+main > section > div {
   flex: 1;
 }
+
+main > section > div:last-child {
+  margin-left: 20px;
+}
+
+@media (max-width: 728px) {
+  main > section {
+    display: block;
+  }
+
+  main > section > div {
+    padding-bottom: 20px;
+  }
+
+  main > section > div:last-child {
+    margin-left: 0;
+  }
+}
+
