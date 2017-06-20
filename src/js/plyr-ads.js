@@ -344,7 +344,7 @@
     // Setup function
     function setup(plyr, config) {
         // Bail if plyr instances aren't found.
-        if (!window.plyr) return false;
+        if (!window.plyr || !plyr) return false;
 
         // Set options from defaults and config.
         var options = _extend({}, defaults, config);
