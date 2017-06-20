@@ -1,4 +1,4 @@
-# Plyr Ads
+# Plyr Ads (Note: In active development)
 
 Demo: https://ferdiemmen.github.io/plyr-ads/
 
