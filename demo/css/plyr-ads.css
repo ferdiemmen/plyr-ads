@@ -8,14 +8,5 @@
   right: 0;
   bottom: 0;
   z-index: 10; }
-  .plyr-ads__skip-button {
-    position: absolute;
-    z-index: 11;
-    top: 1em;
-    right: 0;
-    border: none;
-    font-size: 1.2em;
-    padding: 10px 20px;
-    background: rgba(40, 40, 40, 0.8);
-    color: #fff;
-    display: none; }
+  .plyr-ads video {
+    left: 0; }
