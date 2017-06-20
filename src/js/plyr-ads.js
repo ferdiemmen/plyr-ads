@@ -181,7 +181,6 @@
 
         // Call play to start showing the ad. Single video and overlay ads will
         // start at this time; the call will be ignored for ad rules.
-        console.log(this.adsManager);
         this.adsManager.start();
     }
 
