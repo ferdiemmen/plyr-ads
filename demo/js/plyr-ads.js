@@ -1,6 +1,6 @@
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v0.0.7
+// plyr-ads.js v0.0.8
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -33,7 +33,8 @@
         classes: [],
         skipButton: {
             enabled: true,
-            text: 'Skip ad'
+            text: 'Skip ad',
+            delay: 10
         }
     };
 
@@ -75,6 +76,7 @@
         this.plyr = plyr;
         this.options = options;
         this.plyrContainer = plyr.getContainer();
+        this.skipAdButton;
         this.adDisplayContainer;
 
         // Check if the Google IMA3 SDK is present.
@@ -93,6 +95,7 @@
     PlyrAds.prototype.playVideo = _playVideo;
     PlyrAds.prototype.setUpIMA = _setUpIMA;
     PlyrAds.prototype.createAdDisplayContainer = _createAdDisplayContainer;
+    PlyrAds.prototype.createAdSkipButton = _createAdSkipButton;
     PlyrAds.prototype.onAdEvent = _onAdEvent;
     PlyrAds.prototype.onAdError = _onAdError;
     PlyrAds.prototype.onAdsManagerLoaded = _onAdsManagerLoaded;
@@ -106,6 +109,17 @@
         this.adDisplayContainer.I.addEventListener(_getStartEvent(), function() {
             this.playAds();
         }.bind(this), false);
+    }
+
+    function _createAdSkipButton() {
+        var delay = parseInt(this.options.skipButton.delay, 10) * 1000;
+        setTimeout(function() {
+            this.skipAdButton = _insertElement('button', this.plyrContainer, {class: 'plyr-ads__skip-button'});
+            this.skipAdButton.innerHTML = this.options.skipButton.text;
+            this.skipAdButton.addEventListener(_getStartEvent(), function() {
+                this.playVideo();
+            }.bind(this), false);
+        }.bind(this), delay);
     }
 
     function _getStartEvent() {
@@ -144,6 +158,7 @@
     }
 
     function _playVideo() {
+        this.skipAdButton.remove();
         this.adDisplayContainer.I.remove();
         this.plyr.play();
     }
@@ -172,6 +187,9 @@
     }
 
     function _playAds() {
+
+        // Add ad skip button to DOM.
+        this.createAdSkipButton();
 
         // Initialize the container. Must be done via a user action on mobile devices.
         this.adDisplayContainer.initialize();
