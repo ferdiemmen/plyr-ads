@@ -17,13 +17,28 @@
     }
 
     &__skip-button {
-        font-size: 1.5rem;
+        font-size: .8rem;
         position: absolute;
         color: #fff;
-        top: 20px;
+        bottom: 40px;
         right: 0;
         z-index: 11;
         background: rgba(0,0,0,.8);
         padding: 5px 10px;
+
+        &.done {
+            font-size: 1.5rem;
+            &:after {
+                content: '';
+                background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAQAAABKfvVzAAAABGdBTUEAALGPC/xhBQAAAAJiS0dEAP+Hj8y/AAAAZElEQVQ4y+3SwQmDQBBGYRFy9mYLSRXWEyvRRtKBbdhDUoTH8HkVllX+u++48GD2zTTNTYiPrnhDXeBnyAT+Zo9EgNUrE9iMmQCLvhTas2jXWY8jvbNPP5OsU5L1my0uPY2bCjtXdo6mqRVtTgAAAABJRU5ErkJggg==');
+                background-repeat: no-repeat;
+                display: inline-block;
+                height: 24px;
+                margin-left: 2px;
+                vertical-align: middle;
+                width: 24px;
+                display: inline-block;
+            }
+        }
     }
 }

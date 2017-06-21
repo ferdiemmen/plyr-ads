@@ -1,6 +1,6 @@
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v1.0.2
+// plyr-ads.js v1.0.3
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -72,10 +72,12 @@
     function PlyrAds(plyr, options) {
         this.adsManager;
         this.adsLoader;
+        this.adDuration;
         this.intervalTimer;
         this.plyr = plyr;
         this.options = options;
         this.plyrContainer = plyr.getContainer();
+        this.adPaused = false;
         this.skipAdButton;
         this.adDisplayContainer;
 
@@ -113,13 +115,24 @@
 
     function _createAdSkipButton() {
         var delay = parseInt(this.options.skipButton.delay, 10) * 1000;
-        setTimeout(function() {
-            this.skipAdButton = _insertElement('button', this.plyrContainer, {class: 'plyr-ads__skip-button'});
-            this.skipAdButton.innerHTML = this.options.skipButton.text;
-            this.skipAdButton.addEventListener(_getStartEvent(), function() {
-                this.playVideo();
-            }.bind(this), false);
-        }.bind(this), delay);
+        var skipTimer = this.options.skipButton.delay;
+
+        this.skipAdButton = _insertElement('button', this.plyrContainer, {class: 'plyr-ads__skip-button'});
+        this.skipAdButton.innerHTML = 'You can skip to video in ' + (skipTimer--);
+
+        var skipButtonTimer = window.setInterval(function() {
+            if (!this.adPaused) {
+                this.skipAdButton.innerHTML = 'You can skip to video in ' + skipTimer--;
+            }
+            if ((skipTimer + 1) === 0) {
+                this.skipAdButton.className += ' done';
+                this.skipAdButton.innerHTML = this.options.skipButton.text;
+                this.skipAdButton.addEventListener(_getStartEvent(), function() {
+                    this.playVideo();
+                }.bind(this), false);
+                window.clearInterval(skipButtonTimer);
+            }
+        }.bind(this), 1000);
     }
 
     function _getStartEvent() {
@@ -158,7 +171,9 @@
     }
 
     function _playVideo() {
-        this.skipAdButton.remove();
+        if (this.skipAdButton) {
+            this.skipAdButton.remove();
+        }
         this.adDisplayContainer.I.remove();
         this.plyr.play();
     }
@@ -187,9 +202,6 @@
     }
 
     function _playAds() {
-
-        // Add ad skip button to DOM.
-        this.createAdSkipButton();
 
         // Initialize the container. Must be done via a user action on mobile devices.
         this.adDisplayContainer.initialize();
@@ -242,6 +254,16 @@
                 this.onAdEvent(e);
             }.bind(this));
         this.adsManager.addEventListener(
+            google.ima.AdEvent.Type.PAUSED,
+            function (e) {
+                this.onAdEvent(e);
+            }.bind(this));
+        this.adsManager.addEventListener(
+            google.ima.AdEvent.Type.RESUMED,
+            function (e) {
+                this.onAdEvent(e);
+            }.bind(this));
+        this.adsManager.addEventListener(
             google.ima.AdEvent.Type.COMPLETE,
             function (e) {
                 this.onAdEvent(e);
@@ -280,11 +302,35 @@
                 if (ad.isLinear()) {
                     // For a linear ad, a timer can be started to poll for
                     // the remaining time.
-                    this.intervalTimer = setInterval(
-                        function () {
-                            var remainingTime = Math.round(this.adsManager.getRemainingTime());
-                        }.bind(this),
-                        300); // every 300ms
+                    // this.intervalTimer = setInterval(
+                    //     function () {
+                    //         var remainingTime = Math.round(this.adsManager.getRemainingTime());
+                    //     }.bind(this),
+                    //     300); // every 300ms
+                    if (ad.g.duration > 15) {
+                        // Add ad skip button to DOM.
+                        this.createAdSkipButton();
+                    }
+                }
+                break;
+            case google.ima.AdEvent.Type.PAUSED:
+                // This event indicates the ad has started - the video player
+                // can adjust the UI, for example display a pause button and
+                // remaining time.
+                if (ad.isLinear()) {
+                    // For a linear ad, a timer can be started to poll for
+                    // the remaining time.
+                    this.adPaused = true;
+                }
+                break;
+            case google.ima.AdEvent.Type.RESUMED:
+                // This event indicates the ad has started - the video player
+                // can adjust the UI, for example display a pause button and
+                // remaining time.
+                if (ad.isLinear()) {
+                    // For a linear ad, a timer can be started to poll for
+                    // the remaining time.
+                    this.adPaused = false;
                 }
                 break;
             case google.ima.AdEvent.Type.COMPLETE:
