@@ -1,6 +1,8 @@
+  /* global define,module */
+
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v1.0.3
+// plyr-ads.js v1.0.4
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -10,421 +12,437 @@
 //          of any kind either expressed or implied.
 // ==========================================================================
 
-;(function (root, factory) {
-    'use strict';
-    /*global define,module*/
 
-    if (typeof module === 'object' && typeof module.exports === 'object') {
-        // Node, CommonJS-like
-        module.exports = factory(root, document);
-    } else if (typeof define === 'function' && define.amd) {
-        // AMD
-        define([], function () { return factory(root, document); });
-    } else {
-        // Browser globals (root is window)
-        root.plyrAds = factory(root, document);
-    }
+(function (root, factory) {
+
+  'use strict';
+
+  if (typeof module === 'object' && typeof module.exports === 'object') {
+    // Node, CommonJS-like
+    module.exports = factory(root, document);
+  } else if (typeof define === 'function' && define.amd) {
+    // AMD
+    define([], function() {
+      return factory(root, document);
+    });
+  } else {
+    // Browser globals (root is window)
+    root.plyrAds = factory(root, document);
+  }
 }(typeof window !== 'undefined' ? window : this, function (window, document) {
-    'use strict';
+  'use strict';
 
-    // Default config
-    var defaults = {
-        container: 'plyr-ads',
-        classes: [],
-        skipButton: {
-            enabled: true,
-            text: 'Skip ad',
-            delay: 10
-        }
-    };
+  // Default config
+  var defaults = {
+    container: 'plyr-ads',
+    classes: [],
+    skipButton: {
+      enabled: true,
+      text: 'Skip ad',
+      delay: 10
+    }
+  };
 
-    // Check variable types.
-    var _is = {
-        object: function (input) {
-            return input !== null && typeof (input) === 'object';
-        },
-        array: function (input) {
-            return input !== null && (typeof (input) === 'object' && input.constructor === Array);
-        },
-        number: function (input) {
-            return input !== null && (typeof (input) === 'number' && !isNaN(input - 0) || (typeof input === 'object' && input.constructor === Number));
-        },
-        string: function (input) {
-            return input !== null && (typeof input === 'string' || (typeof input === 'object' && input.constructor === String));
-        },
-        boolean: function (input) {
-            return input !== null && typeof input === 'boolean';
-        },
-        nodeList: function (input) {
-            return input !== null && input instanceof NodeList;
-        },
-        htmlElement: function (input) {
-            return input !== null && input instanceof HTMLElement;
-        },
-        function: function (input) {
-            return input !== null && typeof input === 'function';
-        },
-        undefined: function (input) {
-            return input !== null && typeof input === 'undefined';
-        }
-    };
+  // Check variable types.
+  var _is = {
+    object: function (input) {
+      return input !== null && typeof (input) === 'object';
+    },
+    array: function (input) {
+      return input !== null && (typeof (input) === 'object' && input.constructor === Array);
+    },
+    number: function (input) {
+      return input !== null && (typeof (input) === 'number' && !isNaN(input - 0) || (typeof input === 'object' && input.constructor === Number));
+    },
+    string: function (input) {
+      return input !== null && (typeof input === 'string' || (typeof input === 'object' && input.constructor === String));
+    },
+    boolean: function (input) {
+      return input !== null && typeof input === 'boolean';
+    },
+    nodeList: function (input) {
+      return input !== null && input instanceof NodeList;
+    },
+    htmlElement: function (input) {
+      return input !== null && input instanceof HTMLElement;
+    },
+    function: function (input) {
+      return input !== null && typeof input === 'function';
+    },
+    undefined: function (input) {
+      return input !== null && typeof input === 'undefined';
+    }
+  };
 
-    function PlyrAds(plyr, options) {
-        this.adsManager;
-        this.adsLoader;
-        this.adDuration;
-        this.intervalTimer;
-        this.plyr = plyr;
-        this.options = options;
-        this.plyrContainer = plyr.getContainer();
-        this.adPaused = false;
-        this.skipAdButton;
-        this.adDisplayContainer;
+  function PlyrAds(plyr, options) {
+    this.adsManager;
+    this.adsLoader;
+    this.adDuration;
+    this.intervalTimer;
+    this.plyr = plyr;
+    this.options = options;
+    this.plyrContainer = plyr.getContainer();
+    this.adPaused = false;
+    this.skipAdButton;
+    this.adDisplayContainer;
 
-        // Check if the Google IMA3 SDK is present.
-        if (!window.google) {
-            throw new Error('The Google IMA3 SDK is not loaded.');
-        }
-
-        // Add ad container to DOM.
-        this.createAdDisplayContainer();
-
-        // Setup IMA.
-        this.setUpIMA();
+    // Check if the Google IMA3 SDK is present.
+    if (!window.google) {
+      throw new Error('The Google IMA3 SDK is not loaded.');
     }
 
-    PlyrAds.prototype.playAds = _playAds;
-    PlyrAds.prototype.playVideo = _playVideo;
-    PlyrAds.prototype.setUpIMA = _setUpIMA;
-    PlyrAds.prototype.createAdDisplayContainer = _createAdDisplayContainer;
-    PlyrAds.prototype.createAdSkipButton = _createAdSkipButton;
-    PlyrAds.prototype.onAdEvent = _onAdEvent;
-    PlyrAds.prototype.onAdError = _onAdError;
-    PlyrAds.prototype.onAdsManagerLoaded = _onAdsManagerLoaded;
-    PlyrAds.prototype.onContentResumeRequested = _onContentResumeRequested;
-    PlyrAds.prototype.onContentSkippable = _onContentSkippable;
+    // Add ad container to DOM.
+    this.createAdDisplayContainer();
 
-    function _createAdDisplayContainer() {
-        this.adDisplayContainer = new google.ima.AdDisplayContainer(
-            this.plyr.getContainer());
-        this.adDisplayContainer.I.setAttribute('class', 'plyr-ads');
-        this.adDisplayContainer.I.addEventListener(_getStartEvent(), function() {
-            this.playAds();
+    // Setup IMA.
+    this.setUpIMA();
+  }
+
+  PlyrAds.prototype.playAds = _playAds;
+  PlyrAds.prototype.playVideo = _playVideo;
+  PlyrAds.prototype.setUpIMA = _setUpIMA;
+  PlyrAds.prototype.createAdDisplayContainer = _createAdDisplayContainer;
+  PlyrAds.prototype.createAdSkipButton = _createAdSkipButton;
+  PlyrAds.prototype.onAdEvent = _onAdEvent;
+  PlyrAds.prototype.onAdError = _onAdError;
+  PlyrAds.prototype.onAdsManagerLoaded = _onAdsManagerLoaded;
+  PlyrAds.prototype.onContentResumeRequested = _onContentResumeRequested;
+  PlyrAds.prototype.onContentSkippable = _onContentSkippable;
+
+  function _createAdDisplayContainer() {
+    this.adDisplayContainer = new window.google.ima.AdDisplayContainer(
+      this.plyr.getContainer());
+    this.adDisplayContainer.I.setAttribute('class', 'plyr-ads');
+    this.adDisplayContainer.I.addEventListener(_getStartEvent(), function() {
+      this.playAds();
+    }.bind(this), false);
+  }
+
+  function _createAdSkipButton() {
+    var skipTimer = this.options.skipButton.delay;
+
+    this.skipAdButton = _insertElement('button', this.plyrContainer, {
+      class: 'plyr-ads__skip-button'
+    });
+    this.skipAdButton.innerHTML = 'You can skip to video in ' + (skipTimer--);
+
+    var skipButtonTimer = window.setInterval(function waitForAd() {
+      if (!this.adPaused) {
+        this.skipAdButton.innerHTML = 'You can skip to video in ' + skipTimer--;
+      }
+      if ((skipTimer + 1) === 0) {
+        this.skipAdButton.className += ' done';
+        this.skipAdButton.innerHTML = this.options.skipButton.text;
+        this.skipAdButton.addEventListener(_getStartEvent(), function() {
+          this.playVideo();
         }.bind(this), false);
+        window.clearInterval(skipButtonTimer);
+      }
+    }.bind(this), 1000);
+  }
+
+  function _getStartEvent() {
+    // Set the correct event based on userAgent.
+    var startEvent = 'click';
+    if (navigator.userAgent.match(/iPhone/i) ||
+      navigator.userAgent.match(/iPad/i) ||
+      navigator.userAgent.match(/Android/i)) {
+      startEvent = 'touchend';
     }
+    return startEvent;
+  }
 
-    function _createAdSkipButton() {
-        var delay = parseInt(this.options.skipButton.delay, 10) * 1000;
-        var skipTimer = this.options.skipButton.delay;
+  // Prepend child
+  function _prependChild(parent, element) {
+    return parent.insertBefore(element, parent.firstChild);
+  }
 
-        this.skipAdButton = _insertElement('button', this.plyrContainer, {class: 'plyr-ads__skip-button'});
-        this.skipAdButton.innerHTML = 'You can skip to video in ' + (skipTimer--);
-
-        var skipButtonTimer = window.setInterval(function() {
-            if (!this.adPaused) {
-                this.skipAdButton.innerHTML = 'You can skip to video in ' + skipTimer--;
-            }
-            if ((skipTimer + 1) === 0) {
-                this.skipAdButton.className += ' done';
-                this.skipAdButton.innerHTML = this.options.skipButton.text;
-                this.skipAdButton.addEventListener(_getStartEvent(), function() {
-                    this.playVideo();
-                }.bind(this), false);
-                window.clearInterval(skipButtonTimer);
-            }
-        }.bind(this), 1000);
+  // Set attributes
+  function _setAttributes(element, attributes) {
+    for (var key in attributes) {
+      if (Object.prototype.hasOwnProperty.call(attributes, key)) {
+        element.setAttribute(key, (_is.boolean(attributes[key]) && attributes[key]) ? '' : attributes[key]);
+      }
     }
+  }
 
-    function _getStartEvent() {
-        // Set the correct event based on userAgent.
-        var startEvent = 'click';
-        if (navigator.userAgent.match(/iPhone/i) ||
-            navigator.userAgent.match(/iPad/i) ||
-            navigator.userAgent.match(/Android/i)) {
-            startEvent = 'touchend';
-        }
-        return startEvent;
+  // Insert a HTML element
+  function _insertElement(type, parent, attributes) {
+    // Create a new <element>
+    var element = document.createElement(type);
+
+    // Set all passed attributes
+    _setAttributes(element, attributes);
+
+    // Inject the new element
+    return _prependChild(parent, element);
+  }
+
+  function _playVideo() {
+    if (this.skipAdButton) {
+      this.skipAdButton.remove();
     }
+    this.adDisplayContainer.I.remove();
 
-    // Prepend child
-    function _prependChild(parent, element) {
-        return parent.insertBefore(element, parent.firstChild);
+    if (this.plyr.getType() === 'youtube') {
+      // Due to this restriction, functions and parameters such as autoplay,
+      // playVideo(), loadVideoById() won't work in all mobile environments.
+      this.plyr.getEmbed().playVideoAt(0);
+    } else {
+      this.plyr.play();
     }
+  }
 
-    // Set attributes
-    function _setAttributes(element, attributes) {
-        for (var key in attributes) {
-            element.setAttribute(key, (_is.boolean(attributes[key]) && attributes[key]) ? '' : attributes[key]);
-        }
-    }
-
-    // Insert a HTML element
-    function _insertElement(type, parent, attributes) {
-        // Create a new <element>
-        var element = document.createElement(type);
-
-        // Set all passed attributes
-        _setAttributes(element, attributes);
-
-        // Inject the new element
-        return _prependChild(parent, element);
-    }
-
-    function _playVideo() {
-        if (this.skipAdButton) {
-            this.skipAdButton.remove();
-        }
+  function _setUpIMA() {
+    // Create ads loader.
+    this.adsLoader = new window.google.ima.AdsLoader(this.adDisplayContainer);
+    // Listen and respond to ads loaded and error events.
+    this.adsLoader.addEventListener(
+      window.google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
+      function (e) {
+        this.onAdsManagerLoaded(e);
+      }.bind(this),
+      false);
+    this.adsLoader.addEventListener(
+      window.google.ima.AdErrorEvent.Type.AD_ERROR,
+      function() {
         this.adDisplayContainer.I.remove();
-        this.plyr.play();
-    }
+      }.bind(this),
+      false);
 
-    function _setUpIMA() {
-        // Create ads loader.
-        this.adsLoader = new google.ima.AdsLoader(this.adDisplayContainer);
-        // Listen and respond to ads loaded and error events.
-        this.adsLoader.addEventListener(
-            google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
-            function (e) {
-                this.onAdsManagerLoaded(e);
-            }.bind(this),
-            false);
-        this.adsLoader.addEventListener(
-            google.ima.AdErrorEvent.Type.AD_ERROR,
-            function (adError) {
-                this.adDisplayContainer.I.remove();
-            }.bind(this),
-            false);
+    // Request video ads.
+    var adsRequest = new window.google.ima.AdsRequest();
+    adsRequest.adTagUrl = this.options.adTagUrl;
+    this.adsLoader.requestAds(adsRequest);
+  }
 
-        // Request video ads.
-        var adsRequest = new google.ima.AdsRequest();
-        adsRequest.adTagUrl = this.options.adTagUrl;
-        this.adsLoader.requestAds(adsRequest);
-    }
+  function _playAds() {
 
-    function _playAds() {
+    // Initialize the container. Must be done via a user action on mobile devices.
+    this.adDisplayContainer.initialize();
 
-        // Initialize the container. Must be done via a user action on mobile devices.
-        this.adDisplayContainer.initialize();
+    // Initialize the ads manager. Ad rules playlist will start at this time.
+    this.adsManager.init(this.plyrContainer.offsetWidth, this.plyrContainer.offsetHeight, window.google.ima.ViewMode.NORMAL);
 
-        // Initialize the ads manager. Ad rules playlist will start at this time.
-        this.adsManager.init(this.plyrContainer.offsetWidth, this.plyrContainer.offsetHeight, google.ima.ViewMode.NORMAL);
+    // Call play to start showing the ad. Single video and overlay ads will
+    // start at this time; the call will be ignored for ad rules.
+    this.adsManager.start();
+  }
 
-        // Call play to start showing the ad. Single video and overlay ads will
-        // start at this time; the call will be ignored for ad rules.
-        this.adsManager.start();
-    }
+  function _onAdsManagerLoaded(adsManagerLoadedEvent) {
+    // Get the ads manager.
+    var adsRenderingSettings = new window.google.ima.AdsRenderingSettings();
+    adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
+    this.adsManager = adsManagerLoadedEvent.getAdsManager(adsRenderingSettings);
 
-    function _onAdsManagerLoaded(adsManagerLoadedEvent) {
-        // Get the ads manager.
-        var adsRenderingSettings = new google.ima.AdsRenderingSettings();
-        adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
-        this.adsManager = adsManagerLoadedEvent.getAdsManager(adsRenderingSettings);
+    // Add listeners to the required events.
+    this.adsManager.addEventListener(
+      window.google.ima.AdErrorEvent.Type.AD_ERROR,
+      function (e) {
+        this.onAdError(e);
+      }.bind(this));
+    this.adsManager.addEventListener(
+      window.google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
+      function (e) {
+        this.onContentResumeRequested(e);
+      }.bind(this));
+    this.adsManager.addEventListener(
+      window.google.ima.AdEvent.Type.SKIPPABLE_STATE_CHANGED,
+      function (e) {
+        this.onContentSkippable(e);
+      }.bind(this));
+    this.adsManager.addEventListener(
+      window.google.ima.AdEvent.Type.ALL_ADS_COMPLETED,
+      function (e) {
+        this.onAdEvent(e);
+      }.bind(this));
 
-        // Add listeners to the required events.
-        this.adsManager.addEventListener(
-            google.ima.AdErrorEvent.Type.AD_ERROR,
-            function (e) {
-                this.onAdError(e);
-            }.bind(this));
-        this.adsManager.addEventListener(
-            google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
-            function (e) {
-                this.onContentResumeRequested(e);
-            }.bind(this));
-        this.adsManager.addEventListener(
-            google.ima.AdEvent.Type.SKIPPABLE_STATE_CHANGED,
-            function (e) {
-                this.onContentSkippable(e);
-            }.bind(this));
-        this.adsManager.addEventListener(
-            google.ima.AdEvent.Type.ALL_ADS_COMPLETED,
-            function (e) {
-                this.onAdEvent(e);
-            }.bind(this));
+    // Listen to any additional events, if necessary.
+    this.adsManager.addEventListener(
+      window.google.ima.AdEvent.Type.LOADED,
+      function (e) {
+        this.onAdEvent(e);
+      }.bind(this));
+    this.adsManager.addEventListener(
+      window.google.ima.AdEvent.Type.STARTED,
+      function (e) {
+        this.onAdEvent(e);
+      }.bind(this));
+    this.adsManager.addEventListener(
+      window.google.ima.AdEvent.Type.PAUSED,
+      function (e) {
+        this.onAdEvent(e);
+      }.bind(this));
+    this.adsManager.addEventListener(
+      window.google.ima.AdEvent.Type.RESUMED,
+      function (e) {
+        this.onAdEvent(e);
+      }.bind(this));
+    this.adsManager.addEventListener(
+      window.google.ima.AdEvent.Type.COMPLETE,
+      function (e) {
+        this.onAdEvent(e);
+      }.bind(this));
 
-        // Listen to any additional events, if necessary.
-        this.adsManager.addEventListener(
-            google.ima.AdEvent.Type.LOADED,
-            function (e) {
-                this.onAdEvent(e);
-            }.bind(this));
-        this.adsManager.addEventListener(
-            google.ima.AdEvent.Type.STARTED,
-            function (e) {
-                this.onAdEvent(e);
-            }.bind(this));
-        this.adsManager.addEventListener(
-            google.ima.AdEvent.Type.PAUSED,
-            function (e) {
-                this.onAdEvent(e);
-            }.bind(this));
-        this.adsManager.addEventListener(
-            google.ima.AdEvent.Type.RESUMED,
-            function (e) {
-                this.onAdEvent(e);
-            }.bind(this));
-        this.adsManager.addEventListener(
-            google.ima.AdEvent.Type.COMPLETE,
-            function (e) {
-                this.onAdEvent(e);
-            }.bind(this));
+    // Listen to the resizing of the window. And resize
+    // ad accordingly.
+    window.addEventListener(
+      'resize',
+      function() {
+        this.adsManager.resize(
+          this.plyrContainer.offsetWidth,
+          this.plyrContainer.offsetHeight,
+          window.google.ima.ViewMode.NORMAL);
+      }.bind(this));
+  }
 
-        // Listen to the resizing of the window. And resize
-        // ad accordingly.
-        window.addEventListener(
-            'resize',
-            function (e) {
-                this.adsManager.resize(
-                    this.plyrContainer.offsetWidth,
-                    this.plyrContainer.offsetHeight,
-                    google.ima.ViewMode.NORMAL);
-            }.bind(this));
-    }
-
-    function _onAdEvent(adEvent) {
-        // Retrieve the ad from the event. Some events (e.g. ALL_ADS_COMPLETED)
-        // don't have ad object associated.
-        var ad = adEvent.getAd();
-        switch (adEvent.type) {
-            case google.ima.AdEvent.Type.LOADED:
-                // This is the first event sent for an ad - it is possible to
-                // determine whether the ad is a video ad or an overlay.
-                if (!ad.isLinear()) {
-                    // Position AdDisplayContainer correctly for overlay.
-                    // Use ad.width and ad.height.
-                    this.playVideo();
-                }
-                break;
-            case google.ima.AdEvent.Type.STARTED:
-                // This event indicates the ad has started - the video player
-                // can adjust the UI, for example display a pause button and
-                // remaining time.
-                if (ad.isLinear()) {
-                    // For a linear ad, a timer can be started to poll for
-                    // the remaining time.
-                    // this.intervalTimer = setInterval(
-                    //     function () {
-                    //         var remainingTime = Math.round(this.adsManager.getRemainingTime());
-                    //     }.bind(this),
-                    //     300); // every 300ms
-                    if (ad.g.duration > 15) {
-                        // Add ad skip button to DOM.
-                        this.createAdSkipButton();
-                    }
-                }
-                break;
-            case google.ima.AdEvent.Type.PAUSED:
-                // This event indicates the ad has started - the video player
-                // can adjust the UI, for example display a pause button and
-                // remaining time.
-                if (ad.isLinear()) {
-                    // For a linear ad, a timer can be started to poll for
-                    // the remaining time.
-                    this.adPaused = true;
-                }
-                break;
-            case google.ima.AdEvent.Type.RESUMED:
-                // This event indicates the ad has started - the video player
-                // can adjust the UI, for example display a pause button and
-                // remaining time.
-                if (ad.isLinear()) {
-                    // For a linear ad, a timer can be started to poll for
-                    // the remaining time.
-                    this.adPaused = false;
-                }
-                break;
-            case google.ima.AdEvent.Type.COMPLETE:
-                // This event indicates the ad has finished - the video player
-                // can perform appropriate UI actions, such as removing the timer for
-                // remaining time detection.
-
-                // Start playing the video.
-                this.playVideo();
-
-                if (ad.isLinear()) {
-                    clearInterval(this.intervalTimer);
-                }
-                break;
+  function _onAdEvent(adEvent) {
+    // Retrieve the ad from the event. Some events (e.g. ALL_ADS_COMPLETED)
+    // don't have ad object associated.
+    var ad = adEvent.getAd();
+    switch (adEvent.type) {
+      case window.google.ima.AdEvent.Type.LOADED:
+        // This is the first event sent for an ad - it is possible to
+        // determine whether the ad is a video ad or an overlay.
+        if (!ad.isLinear()) {
+          // Position AdDisplayContainer correctly for overlay.
+          // Use ad.width and ad.height.
+          this.playVideo();
         }
-    }
+        break;
+      case window.google.ima.AdEvent.Type.STARTED:
+        // This event indicates the ad has started - the video player
+        // can adjust the UI, for example display a pause button and
+        // remaining time.
+        if (ad.isLinear()) {
+          // For a linear ad, a timer can be started to poll for
+          // the remaining time.
+          // this.intervalTimer = setInterval(
+          //     function() {
+          //         var remainingTime = Math.round(this.adsManager.getRemainingTime());
+          //     }.bind(this),
+          //     300); // every 300ms
+          if (ad.g.duration > 15) {
+            // Add ad skip button to DOM.
+            this.createAdSkipButton();
+          }
+        }
+        break;
+      case window.google.ima.AdEvent.Type.PAUSED:
+        // This event indicates the ad has started - the video player
+        // can adjust the UI, for example display a pause button and
+        // remaining time.
+        if (ad.isLinear()) {
+          // For a linear ad, a timer can be started to poll for
+          // the remaining time.
+          this.adPaused = true;
+        }
+        break;
+      case window.google.ima.AdEvent.Type.RESUMED:
+        // This event indicates the ad has started - the video player
+        // can adjust the UI, for example display a pause button and
+        // remaining time.
+        if (ad.isLinear()) {
+          // For a linear ad, a timer can be started to poll for
+          // the remaining time.
+          this.adPaused = false;
+        }
+        break;
+      case window.google.ima.AdEvent.Type.COMPLETE:
+        // This event indicates the ad has finished - the video player
+        // can perform appropriate UI actions, such as removing the timer for
+        // remaining time detection.
 
-    function _onAdError(adErrorEvent) {
-        // Handle the error logging.
-        this.adsManager.destroy();
-        throw new Error(adErrorEvent.getError());
-    }
-
-    function _onContentResumeRequested() {
         // Start playing the video.
         this.playVideo();
-        // This function is where you should ensure that your UI is ready
-        // to play content. It is the responsibility of the Publisher to
-        // implement this function when necessary.
-        // setupUIForContent();
-    }
 
-    function _onContentSkippable() {
-        this.plyrAdSkipButton.style.display = 'block';
-    }
-
-    // Deep extend/merge destination object with N more objects
-    // http://andrewdupont.net/2009/08/28/deep-extending-objects-in-javascript/
-    // Removed call to arguments.callee (used explicit function name instead)
-    function _extend() {
-        // Get arguments
-        var objects = arguments;
-
-        // Bail if nothing to merge
-        if (!objects.length) {
-            return;
+        if (ad.isLinear()) {
+          clearInterval(this.intervalTimer);
         }
+        break;
+      default:
+        break;
+    }
+  }
 
-        // Return first if specified but nothing to merge
-        if (objects.length === 1) {
-            return objects[0];
-        }
+  function _onAdError(adErrorEvent) {
+    // Handle the error logging.
+    this.adsManager.destroy();
+    throw new Error(adErrorEvent.getError());
+  }
 
-        // First object is the destination
-        var destination = Array.prototype.shift.call(objects),
-            length      = objects.length;
+  function _onContentResumeRequested() {
+    // Start playing the video.
+    this.playVideo();
+    // This function is where you should ensure that your UI is ready
+    // to play content. It is the responsibility of the Publisher to
+    // implement this function when necessary.
+    // setupUIForContent();
+  }
 
-        // Loop through all objects to merge
-        for (var i = 0; i < length; i++) {
-            var source = objects[i];
+  function _onContentSkippable() {
+    this.plyrAdSkipButton.style.display = 'block';
+  }
 
-            for (var property in source) {
-                if (source[property] && source[property].constructor && source[property].constructor === Object) {
-                    destination[property] = destination[property] || {};
-                    _extend(destination[property], source[property]);
-                } else {
-                    destination[property] = source[property];
-                }
-            }
-        }
+  // Deep extend/merge destination object with N more objects
+  // http://andrewdupont.net/2009/08/28/deep-extending-objects-in-javascript/
+  // Removed call to arguments.callee (used explicit function name instead)
+  function _extend() {
+    // Get arguments
+    var objects = arguments;
 
-        return destination;
+    // Bail if nothing to merge
+    if (!objects.length) {
+      return;
     }
 
-    // Setup function
-    function setup(plyr, config) {
-        // Bail if plyr instances aren't found.
-        if (!window.plyr || !plyr) return false;
-
-        // Set options from defaults and config.
-        var options = _extend({}, defaults, config);
-
-        // Loop through plyr instances and add ads.
-        plyr.forEach(function(instance) {
-            // Only add ads to video instances.
-            if (instance.getType() !== 'audio') {
-                instance.plyrAds = new PlyrAds(instance, options);
-            }
-        });
+    // Return first if specified but nothing to merge
+    if (objects.length === 1) {
+      return objects[0];
     }
 
+    // First object is the destination
+    var destination = Array.prototype.shift.call(objects);
+    var length = objects.length;
 
-    return {
-        setup: setup
-    };
+    // Loop through all objects to merge
+    for (var i = 0; i < length; i++) {
+      var source = objects[i];
+
+      for (var property in source) {
+        if (source[property] && source[property].constructor && source[property].constructor === Object) {
+          destination[property] = destination[property] || {};
+          _extend(destination[property], source[property]);
+        } else {
+          destination[property] = source[property];
+        }
+      }
+    }
+
+    return destination;
+  }
+
+  // Setup function
+  function setup(plyr, config) {
+    // Bail if plyr instances aren't found.
+    if (!window.plyr || !plyr) return false;
+
+    // Set options from defaults and config.
+    var options = _extend({}, defaults, config);
+
+    // Loop through plyr instances and add ads.
+    plyr.forEach(function (instance) {
+      // Only add ads to video instances.
+      if (instance.getType() !== 'audio') {
+        return new PlyrAds(instance, options);
+      }
+    });
+
+    return false;
+  }
+
+  return {
+    setup: setup
+  };
 
 }));
