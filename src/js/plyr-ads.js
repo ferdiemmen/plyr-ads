@@ -184,7 +184,10 @@
     }
     this.adDisplayContainer.I.remove();
 
-    if (this.plyr.getType() === 'youtube') {
+    if (this.plyr.getType() === 'youtube' &&
+      navigator.userAgent.match(/iPhone/i) ||
+      navigator.userAgent.match(/iPad/i) ||
+      navigator.userAgent.match(/Android/i)) {
       // Due to this restriction, functions and parameters such as autoplay,
       // playVideo(), loadVideoById() won't work in all mobile environments.
       this.plyr.getEmbed().playVideoAt(0);
