@@ -35,12 +35,13 @@
   // Default config
   var defaults = {
     container: 'plyr-ads',
-    classes: [],
+    adTagUrl: '',
+    type: '',
     skipButton: {
       enabled: true,
       text: 'Skip ad',
       delay: 10
-    }
+    },
   };
 
   // Check variable types.
@@ -95,12 +96,24 @@
     this.createAdDisplayContainer();
 
     // Setup IMA.
-    this.setUpIMA();
+    switch (options.type) {
+      case 'ima':
+        this.setUpIMA();
+        break;
+      case 'vast':
+        break;
+      case 'youtube':
+        this.setUpYoutube();
+        break;
+      default:
+        break;
+    }
   }
 
   PlyrAds.prototype.playAds = _playAds;
   PlyrAds.prototype.playVideo = _playVideo;
   PlyrAds.prototype.setUpIMA = _setUpIMA;
+  PlyrAds.prototype.setUpYoutube = _setUpYoutube;
   PlyrAds.prototype.createAdDisplayContainer = _createAdDisplayContainer;
   PlyrAds.prototype.createAdSkipButton = _createAdSkipButton;
   PlyrAds.prototype.onAdEvent = _onAdEvent;
@@ -219,17 +232,50 @@
     this.adsLoader.requestAds(adsRequest);
   }
 
+  function _setUpYoutube() {
+    this.youtubeAdButton = _insertElement('div', this.plyrContainer, {
+      class: 'plyr-ads plyr-ads__youtube',
+      'data-type': 'youtube',
+      'data-video-id': 't6QHnrrNIKA'
+    });
+
+    this.adsManager = window.plyr.setup(document.querySelectorAll('.plyr-ads__youtube'), {
+      controls: [],
+      hideControls: true,
+      source: {
+        type: 'video',
+        title: '',
+        sources: [{
+          src: 't6QHnrrNIKA',
+          type: 'youtube'
+        }]
+      }
+    });
+  }
+
   function _playAds() {
 
-    // Initialize the container. Must be done via a user action on mobile devices.
-    this.adDisplayContainer.initialize();
+    switch (this.options.type) {
+      case 'ima':
+        // Initialize the container. Must be done via a user action on mobile devices.
+        this.adDisplayContainer.initialize();
 
-    // Initialize the ads manager. Ad rules playlist will start at this time.
-    this.adsManager.init(this.plyrContainer.offsetWidth, this.plyrContainer.offsetHeight, window.google.ima.ViewMode.NORMAL);
+        // Initialize the ads manager. Ad rules playlist will start at this time.
+        this.adsManager.init(this.plyrContainer.offsetWidth, this.plyrContainer.offsetHeight, window.google.ima.ViewMode.NORMAL);
 
-    // Call play to start showing the ad. Single video and overlay ads will
-    // start at this time; the call will be ignored for ad rules.
-    this.adsManager.start();
+        // Call play to start showing the ad. Single video and overlay ads will
+        // start at this time; the call will be ignored for ad rules.
+        this.adsManager.start();
+        break;
+      case 'vast':
+        break;
+      case 'youtube':
+        this.adsManager[0].play();
+        this.adsManager[0].on('ended', function() {
+          this.playVideo();
+        }.bind(this));
+        break;
+    }
   }
 
   function _onAdsManagerLoaded(adsManagerLoadedEvent) {

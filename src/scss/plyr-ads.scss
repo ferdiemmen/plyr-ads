@@ -17,6 +17,12 @@
         left: 0;
     }
 
+    &__youtube {
+        .plyr__controls {
+            display: none;
+        }
+    }
+
     &__skip-button {
         font-size: .8rem;
         position: absolute;
