@@ -209,10 +209,7 @@
     this.adsLoader.addEventListener(
       window.google.ima.AdErrorEvent.Type.AD_ERROR,
       function() {
-        if (this.skipAdButton) {
-          this.skipAdButton.remove();
-        }
-        this.adDisplayContainer.I.remove();
+        this.playVideo();
       }.bind(this),
       false);
 
@@ -374,10 +371,7 @@
   function _onAdError(adErrorEvent) {
     // Handle the error logging.
     this.adsManager.destroy();
-    if (this.skipAdButton) {
-      this.skipAdButton.remove();
-    }
-    this.adDisplayContainer.I.remove();
+    this.playVideo();
     throw new Error(adErrorEvent.getError());
   }
 
