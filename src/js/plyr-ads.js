@@ -113,7 +113,7 @@
     this.adDisplayContainer = new window.google.ima.AdDisplayContainer(
       this.plyr.getContainer());
     this.adDisplayContainer.I.setAttribute('class', 'plyr-ads');
-    this.adDisplayContainer.I.addEventListener(_getStartEvent(), function() {
+    this.adDisplayContainer.I.addEventListener('click', function() {
       this.playAds();
     }.bind(this), false);
   }
@@ -133,23 +133,12 @@
       if ((skipTimer + 1) === 0) {
         this.skipAdButton.className += ' done';
         this.skipAdButton.innerHTML = this.options.skipButton.text;
-        this.skipAdButton.addEventListener(_getStartEvent(), function() {
+        this.skipAdButton.addEventListener('click', function() {
           this.playVideo();
         }.bind(this), false);
         window.clearInterval(skipButtonTimer);
       }
     }.bind(this), 1000);
-  }
-
-  function _getStartEvent() {
-    // Set the correct event based on userAgent.
-    var startEvent = 'click';
-    if (navigator.userAgent.match(/iPhone/i) ||
-      navigator.userAgent.match(/iPad/i) ||
-      navigator.userAgent.match(/Android/i)) {
-      startEvent = 'touchend';
-    }
-    return startEvent;
   }
 
   // Prepend child
