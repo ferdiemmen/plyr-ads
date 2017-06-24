@@ -12,8 +12,6 @@
   cursor: pointer; }
   .plyr-ads video {
     left: 0; }
-  .plyr-ads__youtube .plyr__controls {
-    display: none; }
   .plyr-ads__skip-button {
     font-size: .8rem;
     position: absolute;

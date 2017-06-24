@@ -16,6 +16,7 @@ class PlyrAds {
     this.plyrInstance = plyrInstance;
     this.plyrContainer = plyrInstance.getContainer();
     this.adDisplayContainer;
+    this.adPaused = false;
     this.config = config;
 
     // Initialize
@@ -25,79 +26,98 @@ class PlyrAds {
       }
 
       // Create the ad display container.
-      this._createAdDisplayContainer();
-
-      // Create the ad skip button.
-      this._createAdSkipButton();
+      this._createAdDisplayContainer[this.config.type].call(this);
 
       // Set advertisments.
-      if (this.config.type === 'ima') {
-        this._setUpIMA();
-      }
-
+      this._setUpAds[this.config.type].call(this);
+      
       // Bind click event to adDisplayContainer.
       this._bindEventToAdDisplayContainer();
     }
 
-    this._createAdDisplayContainer = () => {
-      switch (this.config.type) {
-        case 'ima':
-          this.adDisplayContainer = new window.google.ima.AdDisplayContainer(
-            this.plyrContainer
-          );
-          this.adDisplayContainer.I.setAttribute('class', 'plyr-ads');
-          break;
-        case 'youtube':
-          this.adDisplayContainer = _insertElement('div', this.plyrContainer, {
-            class: this.config.container
-          });
-          break;
-        default:
-          break;
+    this._createAdDisplayContainer = {
+      ima: () => {
+        this.adDisplayContainer = new window.google.ima.AdDisplayContainer(
+          this.plyrContainer
+        );
+        this.adDisplayContainer.I.setAttribute('class', 'plyr-ads');
+      },
+      youtube: () => {
+        this.adDisplayContainer = _insertElement('div', this.plyrContainer, {
+          class: this.config.container
+        });
       }
     }
 
     this._createAdSkipButton = () => {
-      let container = this.adDisplayContainer;
+      let skipTimer = this.config.skipButton.delay;
 
-      if (this.config.type === 'ima') {
-        container = container.I;
-      }
+      this.adSkipButton = _insertElement('button', this.plyrContainer, {
+        class: 'plyr-ads__skip-button'
+      });
+      this.adSkipButton.innerHTML = 'You can skip to video in ' + (skipTimer--);
+
+      let skipButtonTimer = window.setInterval(() => {
+        if (!this.adPaused) {
+          this.adSkipButton.innerHTML = 'You can skip to video in ' + skipTimer--;
+        }
+        if ((skipTimer + 1) === 0) {
+          this.adSkipButton.className += ' done';
+          this.adSkipButton.innerHTML = this.config.skipButton.text;
+          this.adSkipButton.addEventListener(_getStartEvent(), () => {
+            this._playVideo();
+          }, false);
+          window.clearInterval(skipButtonTimer);
+        }
+      }, 1000);
     }
 
     this._bindEventToAdDisplayContainer = () => {
-      let container = this.adDisplayContainer;
-
-      if (this.config.type === 'ima') {
-        container = container.I;
-      }
+      
+      // Bind click (touchstart on mobile) to adDisplayContainer.
+      let container = (this.config.type === 'ima') ? 
+                       this.adDisplayContainer.I : this.adDisplayContainer;
 
       container.addEventListener(_getStartEvent(), () => {
         this._playAds();
       }, false);
     }
 
-    this._setUpIMA = () => {
+    this._setUpAds = {
+      ima: () => {
+        // Create ads loader.
+        this.adsLoader = new window.google.ima.AdsLoader(this.adDisplayContainer);
 
-      // Create ads loader.
-      this.adsLoader = new window.google.ima.AdsLoader(this.adDisplayContainer);
+        // Listen and respond to ads loaded and error events.
+        this.adsLoader.addEventListener(
+          window.google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
+          (e) => {
+            this._onAdsManagerLoaded(e);
+          }, false);
+        this.adsLoader.addEventListener(
+          window.google.ima.AdErrorEvent.Type.AD_ERROR,
+          () => {
+            this._playVideo();
+          }, false);
 
-      // Listen and respond to ads loaded and error events.
-      this.adsLoader.addEventListener(
-        window.google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
-        (e) => {
-          this._onAdsManagerLoaded(e);
-        }, false);
-      this.adsLoader.addEventListener(
-        window.google.ima.AdErrorEvent.Type.AD_ERROR,
-        () => {
-          this._playVideo();
-        }, false);
+        // Request video ads.
+        let adsRequest = new window.google.ima.AdsRequest();
+        adsRequest.adTagUrl = this.config.adTagUrl;
+        this.adsLoader.requestAds(adsRequest);
+      },
+      youtube: () => {
+        this.adDisplayContainer.classList.add('plyr-ads__youtube');
+        this.adDisplayContainer.setAttribute('data-type', 'youtube');
+        this.adDisplayContainer.setAttribute('data-video-id', 't6QHnrrNIKA');
 
-      // Request video ads.
-      let adsRequest = new window.google.ima.AdsRequest();
-      adsRequest.adTagUrl = this.config.adTagUrl;
-      this.adsLoader.requestAds(adsRequest);
+        this.adsManager = window.plyr.setup(this.adDisplayContainer, {
+          controls: [],
+        });
+
+        this.adsManager[0].on('ready', (e) => {
+          e.detail.plyr.getContainer().getElementsByClassName('plyr__controls')[0].remove();
+        });
+      }
     }
 
     this._onAdsManagerLoaded = (adsManagerLoadedEvent) => {
@@ -165,13 +185,15 @@ class PlyrAds {
             this.plyrContainer.offsetWidth,
             this.plyrContainer.offsetHeight,
             window.google.ima.ViewMode.NORMAL);
-        });
+        }
+      );
     }
 
   this._onAdEvent = (adEvent) => {
     // Retrieve the ad from the event. Some events (e.g. ALL_ADS_COMPLETED)
     // don't have ad object associated.
     const ad = adEvent.getAd();
+
     switch (adEvent.type) {
       case window.google.ima.AdEvent.Type.LOADED:
         // This is the first event sent for an ad - it is possible to
@@ -179,7 +201,7 @@ class PlyrAds {
         if (!ad.isLinear()) {
           // Position AdDisplayContainer correctly for overlay.
           // Use ad.width and ad.height.
-          this.playVideo();
+          this._playVideo();
         }
         break;
       case window.google.ima.AdEvent.Type.STARTED:
@@ -189,9 +211,9 @@ class PlyrAds {
         if (ad.isLinear()) {
           // For a linear ad, a timer can be started to poll for
           // the remaining time.
-          if (ad.g.duration > 15) {
+          if (ad.getDuration() > this.config.skipButton.delay) {
             // Add ad skip button to DOM.
-            this.createAdSkipButton();
+            this._createAdSkipButton();
           }
         }
         break;
@@ -221,7 +243,7 @@ class PlyrAds {
         // remaining time detection.
 
         // Start playing the video.
-        this.playVideo();
+        this._playVideo();
         break;
       default:
         break;
@@ -243,6 +265,7 @@ class PlyrAds {
     }
 
     this._playAds = () => {
+      
       switch (this.config.type) {
         case 'ima':
           // Initialize the container. Must be done via a user action on mobile devices.
@@ -256,42 +279,59 @@ class PlyrAds {
           this.adsManager.start();
           break;
         case 'youtube':
+          this.adDisplayContainer.style.visibility = 'visible';
+
           // Call play to start showing the ad.
-          this.adsManager.play();
+          if (this.config.type === 'youtube' &&
+            navigator.userAgent.match(/iPhone/i) ||
+            navigator.userAgent.match(/iPad/i) ||
+            navigator.userAgent.match(/Android/i)) {
+            // Due to restrictions in some mobile devices, functions and parameters
+            // such as autoplay, playVideo(), loadVideoById() won't work in all
+            // mobile environments.
+            this.adsManager.getEmbed().playVideoAt(0);
+          } else {
+            // this.adsManager.play();
+          }
 
           // Start playing video after the youtube preroll has ended.
-          this.adsManager.instance.on('ended', () => {
-            this._playVideo();
-          });
+          // this.adsManager[0].on('ended', () => {
+          //   this._playVideo();
+          // });
           break;
         default:
           break;
       }
     }
 
-    this.__ = () => {
+    this._onContentSkippable = () => {
+      // Display the ad skip button.
       this.adSkipButton.style.display = 'block';
     }
 
     this._playVideo = () => {
-      if (this.skipAdButton) {
-        this.skipAdButton.remove();
+      // Remove ad skip button.
+      if (this.adSkipButton) {
+        this.adSkipButton.remove();
       }
-      this.adDisplayContainer.destroy();
+      
+      // Remove ad overlay.
+      let container = (this.config.type === 'ima') ? 
+                       this.adDisplayContainer.I : this.adDisplayContainer;
+      container.remove();
 
-      if (this.plyr.getType() === 'youtube' &&
+      if (this.config.type === 'youtube' &&
         navigator.userAgent.match(/iPhone/i) ||
         navigator.userAgent.match(/iPad/i) ||
         navigator.userAgent.match(/Android/i)) {
         // Due to restrictions in some mobile devices, functions and parameters
         // such as autoplay, playVideo(), loadVideoById() won't work in all
         // mobile environments.
-        this.plyr.getEmbed().playVideoAt(0);
+        this.plyrInstance.getEmbed().playVideoAt(0);
       } else {
-        this.plyr.play();
+        this.plyrInstance.play();
       }
     }
-
   };
 
   static setup(plyrInstances, config) {
@@ -303,7 +343,7 @@ class PlyrAds {
     }
 
     plyrInstances.forEach((instance) => {
-      let plyrAdInstance = new PlyrAds(instance, Object.assign({}, defaults, config));
+      let plyrAdInstance = new PlyrAds(instance, _extend({}, defaults, config));
 
       // Push new PlyrAds instance so we can return the instances.
       plyrAdInstances.push(plyrAdInstance);
@@ -389,4 +429,34 @@ function _getStartEvent() {
   return startEvent;
 }
 
+/**
+ * Simple object check.
+ * @param item
+ * @returns {boolean}
+ */
+function _isObject(item) {
+  return (item && typeof item === 'object' && !Array.isArray(item));
+}
 
+/**
+ * Deep merge two objects.
+ * @param target
+ * @param ...sources
+ */
+function _extend(target, ...sources) {
+  if (!sources.length) return target;
+  const source = sources.shift();
+
+  if (_isObject(target) && _isObject(source)) {
+    for (const key in source) {
+      if (_isObject(source[key])) {
+        if (!target[key]) Object.assign(target, { [key]: {} });
+        _extend(target[key], source[key]);
+      } else {
+        Object.assign(target, { [key]: source[key] });
+      }
+    }
+  }
+
+  return _extend(target, ...sources);
+}
