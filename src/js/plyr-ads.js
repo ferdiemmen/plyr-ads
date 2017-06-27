@@ -2,7 +2,7 @@
 
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v1.0.7
+// plyr-ads.js v1.0.8
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -33,7 +33,7 @@
   'use strict';
 
   // Default config
-  var defaults = {
+  let defaults = {
     container: 'plyr-ads',
     classes: [],
     skipButton: {
@@ -43,8 +43,8 @@
     }
   };
 
-  // Check variable types.
-  var _is = {
+  // Check letiable types.
+  let _is = {
     object: function (input) {
       return input !== null && typeof (input) === 'object';
     },
@@ -91,15 +91,50 @@
       throw new Error('The Google IMA3 SDK is not loaded.');
     }
 
-    // Add ad container to DOM.
-    this.createAdDisplayContainer();
+    this.init = () => {
+      // Add ad container to DOM.
+      this.createAdDisplayContainer();
 
-    // Setup IMA.
-    this.setUpIMA();
+      // Setup IMA.
+      this.setUpIMA();
+    };
+
+    this.playAds = () => {
+
+      // Initialize the container. Must be done via a user action on mobile devices.
+      this.adDisplayContainer.initialize();
+
+      // Initialize the ads manager. Ad rules playlist will start at this time.
+      this.adsManager.init(this.plyrContainer.offsetWidth, this.plyrContainer.offsetHeight, window.google.ima.ViewMode.NORMAL);
+
+      // Call play to start showing the ad. Single video and overlay ads will
+      // start at this time; the call will be ignored for ad rules.
+      this.adsManager.start();
+    };
+
+    this.playVideo = () => {
+      if (this.skipAdButton) {
+        this.skipAdButton.remove();
+      }
+      this.adDisplayContainer.I.remove();
+
+      if (this.plyr.getType() === 'youtube' &&
+        navigator.userAgent.match(/iPhone/i) ||
+        navigator.userAgent.match(/iPad/i) ||
+        navigator.userAgent.match(/Android/i)) {
+        // Due to this restriction, functions and parameters such as autoplay,
+        // playVideo(), loadVideoById() won't work in all mobile environments.
+        this.plyr.getEmbed().playVideoAt(0);
+      } else {
+        this.plyr.play();
+      }
+    };
+
+    return {
+      init: this.init
+    };
   }
 
-  PlyrAds.prototype.playAds = _playAds;
-  PlyrAds.prototype.playVideo = _playVideo;
   PlyrAds.prototype.setUpIMA = _setUpIMA;
   PlyrAds.prototype.createAdDisplayContainer = _createAdDisplayContainer;
   PlyrAds.prototype.createAdSkipButton = _createAdSkipButton;
@@ -108,48 +143,39 @@
   PlyrAds.prototype.onAdsManagerLoaded = _onAdsManagerLoaded;
   PlyrAds.prototype.onContentResumeRequested = _onContentResumeRequested;
   PlyrAds.prototype.onContentSkippable = _onContentSkippable;
+  PlyrAds.prototype.toggleListener = _toggleListener;
 
   function _createAdDisplayContainer() {
     this.adDisplayContainer = new window.google.ima.AdDisplayContainer(
       this.plyr.getContainer());
     this.adDisplayContainer.I.setAttribute('class', 'plyr-ads');
-    this.adDisplayContainer.I.addEventListener(_getStartEvent(), function() {
-      this.playAds();
-    }.bind(this), false);
+
+    // Set listener on ad display container to play the ad.
+    this.toggleListener(this.adDisplayContainer.I, this.playAds);
   }
 
   function _createAdSkipButton() {
-    var skipTimer = this.options.skipButton.delay;
+    let skipTimer = this.options.skipButton.delay;
 
     this.skipAdButton = _insertElement('button', this.plyrContainer, {
       class: 'plyr-ads__skip-button'
     });
     this.skipAdButton.innerHTML = 'You can skip to video in ' + (skipTimer--);
 
-    var skipButtonTimer = window.setInterval(function waitForAd() {
+    let skipButtonTimer = window.setInterval(function waitForAd() {
       if (!this.adPaused) {
         this.skipAdButton.innerHTML = 'You can skip to video in ' + skipTimer--;
       }
       if ((skipTimer + 1) === 0) {
         this.skipAdButton.className += ' done';
         this.skipAdButton.innerHTML = this.options.skipButton.text;
-        this.skipAdButton.addEventListener(_getStartEvent(), function() {
-          this.playVideo();
-        }.bind(this), false);
+
+        // Set listener on ad skip button to skip the ad.
+        this.toggleListener(this.skipAdButton, this.playVideo);
+
         window.clearInterval(skipButtonTimer);
       }
     }.bind(this), 1000);
-  }
-
-  function _getStartEvent() {
-    // Set the correct event based on userAgent.
-    var startEvent = 'click';
-    if (navigator.userAgent.match(/iPhone/i) ||
-      navigator.userAgent.match(/iPad/i) ||
-      navigator.userAgent.match(/Android/i)) {
-      startEvent = 'touchstart';
-    }
-    return startEvent;
   }
 
   // Prepend child
@@ -159,7 +185,7 @@
 
   // Set attributes
   function _setAttributes(element, attributes) {
-    for (var key in attributes) {
+    for (let key in attributes) {
       if (Object.prototype.hasOwnProperty.call(attributes, key)) {
         element.setAttribute(key, (_is.boolean(attributes[key]) && attributes[key]) ? '' : attributes[key]);
       }
@@ -169,31 +195,13 @@
   // Insert a HTML element
   function _insertElement(type, parent, attributes) {
     // Create a new <element>
-    var element = document.createElement(type);
+    let element = document.createElement(type);
 
     // Set all passed attributes
     _setAttributes(element, attributes);
 
     // Inject the new element
     return _prependChild(parent, element);
-  }
-
-  function _playVideo() {
-    if (this.skipAdButton) {
-      this.skipAdButton.remove();
-    }
-    this.adDisplayContainer.I.remove();
-
-    if (this.plyr.getType() === 'youtube' &&
-      navigator.userAgent.match(/iPhone/i) ||
-      navigator.userAgent.match(/iPad/i) ||
-      navigator.userAgent.match(/Android/i)) {
-      // Due to this restriction, functions and parameters such as autoplay,
-      // playVideo(), loadVideoById() won't work in all mobile environments.
-      this.plyr.getEmbed().playVideoAt(0);
-    } else {
-      this.plyr.play();
-    }
   }
 
   function _setUpIMA() {
@@ -214,27 +222,14 @@
       false);
 
     // Request video ads.
-    var adsRequest = new window.google.ima.AdsRequest();
+    let adsRequest = new window.google.ima.AdsRequest();
     adsRequest.adTagUrl = this.options.adTagUrl;
     this.adsLoader.requestAds(adsRequest);
   }
 
-  function _playAds() {
-
-    // Initialize the container. Must be done via a user action on mobile devices.
-    this.adDisplayContainer.initialize();
-
-    // Initialize the ads manager. Ad rules playlist will start at this time.
-    this.adsManager.init(this.plyrContainer.offsetWidth, this.plyrContainer.offsetHeight, window.google.ima.ViewMode.NORMAL);
-
-    // Call play to start showing the ad. Single video and overlay ads will
-    // start at this time; the call will be ignored for ad rules.
-    this.adsManager.start();
-  }
-
   function _onAdsManagerLoaded(adsManagerLoadedEvent) {
     // Get the ads manager.
-    var adsRenderingSettings = new window.google.ima.AdsRenderingSettings();
+    let adsRenderingSettings = new window.google.ima.AdsRenderingSettings();
     adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
     this.adsManager = adsManagerLoadedEvent.getAdsManager(adsRenderingSettings);
 
@@ -302,7 +297,7 @@
   function _onAdEvent(adEvent) {
     // Retrieve the ad from the event. Some events (e.g. ALL_ADS_COMPLETED)
     // don't have ad object associated.
-    var ad = adEvent.getAd();
+    let ad = adEvent.getAd();
     switch (adEvent.type) {
       case window.google.ima.AdEvent.Type.LOADED:
         // This is the first event sent for an ad - it is possible to
@@ -322,7 +317,7 @@
           // the remaining time.
           // this.intervalTimer = setInterval(
           //     function() {
-          //         var remainingTime = Math.round(this.adsManager.getRemainingTime());
+          //         let remainingTime = Math.round(this.adsManager.getRemainingTime());
           //     }.bind(this),
           //     300); // every 300ms
           if (ad.g.duration > 15) {
@@ -393,7 +388,7 @@
   // Removed call to arguments.callee (used explicit function name instead)
   function _extend() {
     // Get arguments
-    var objects = arguments;
+    let objects = arguments;
 
     // Bail if nothing to merge
     if (!objects.length) {
@@ -406,14 +401,14 @@
     }
 
     // First object is the destination
-    var destination = Array.prototype.shift.call(objects);
-    var length = objects.length;
+    let destination = Array.prototype.shift.call(objects);
+    let length = objects.length;
 
     // Loop through all objects to merge
-    for (var i = 0; i < length; i++) {
-      var source = objects[i];
+    for (let i = 0; i < length; i++) {
+      let source = objects[i];
 
-      for (var property in source) {
+      for (let property in source) {
         if (source[property] && source[property].constructor && source[property].constructor === Object) {
           destination[property] = destination[property] || {};
           _extend(destination[property], source[property]);
@@ -426,19 +421,44 @@
     return destination;
   }
 
+  function _toggleListener(element, cb) {
+    let startEvent;
+    for (let touchEvent of _getEvents()) {
+      element.addEventListener(touchEvent, function(event) {
+        if (event.type === 'touchend' && startEvent === 'touchstart' || event.type === 'click') {
+          cb();
+        }
+        startEvent = event.type;
+      }, false);
+    }
+  }
+
+  function _getEvents() {
+    // Set the correct event based on userAgent.
+    let startEvent = ['click'];
+    if (navigator.userAgent.match(/iPhone/i) ||
+      navigator.userAgent.match(/iPad/i) ||
+      navigator.userAgent.match(/Android/i)) {
+      startEvent = ['touchstart', 'touchend', 'touchmove'];
+    }
+    return startEvent;
+  }
+
+
   // Setup function
   function setup(plyr, config) {
     // Bail if plyr instances aren't found.
     if (!window.plyr || !plyr) return false;
 
     // Set options from defaults and config.
-    var options = _extend({}, defaults, config);
+    let options = _extend({}, defaults, config);
 
     // Loop through plyr instances and add ads.
     plyr.forEach(function (instance) {
       // Only add ads to video instances.
       if (instance.getType() !== 'audio') {
-        return new PlyrAds(instance, options);
+        let newInstance = new PlyrAds(instance, options);
+        newInstance.init();
       }
     });
 
