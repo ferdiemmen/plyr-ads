@@ -30,7 +30,7 @@ class PlyrAds {
 
       // Set advertisments.
       this._setUpAds[this.config.type].call(this);
-      
+
       // Bind click event to adDisplayContainer.
       this._bindEventToAdDisplayContainer();
     }
@@ -73,9 +73,9 @@ class PlyrAds {
     }
 
     this._bindEventToAdDisplayContainer = () => {
-      
+
       // Bind click (touchstart on mobile) to adDisplayContainer.
-      let container = (this.config.type === 'ima') ? 
+      let container = (this.config.type === 'ima') ?
                        this.adDisplayContainer.I : this.adDisplayContainer;
 
       container.addEventListener(_getStartEvent(), () => {
@@ -251,7 +251,7 @@ class PlyrAds {
   }
 
     this.onAdError = (adErrorEvent) => {
-      
+
       // Handle the error logging.
       this.adsManager.destroy();
       this._playVideo();
@@ -259,13 +259,13 @@ class PlyrAds {
     }
 
     this._onContentResumeRequested = () => {
-      
+
       // Start playing the video.
       this._playVideo();
     }
 
     this._playAds = () => {
-      
+
       switch (this.config.type) {
         case 'ima':
           // Initialize the container. Must be done via a user action on mobile devices.
@@ -314,9 +314,9 @@ class PlyrAds {
       if (this.adSkipButton) {
         this.adSkipButton.remove();
       }
-      
+
       // Remove ad overlay.
-      let container = (this.config.type === 'ima') ? 
+      let container = (this.config.type === 'ima') ?
                        this.adDisplayContainer.I : this.adDisplayContainer;
       container.remove();
 
@@ -332,12 +332,16 @@ class PlyrAds {
         this.plyrInstance.play();
       }
     }
+
+    return {
+      init: this.init,
+    }
   };
 
   static setup(plyrInstances, config) {
     let plyrAdInstances = [];
 
-    // Wrap single instances in an Array so we can loop it. 
+    // Wrap single instances in an Array so we can loop it.
     if (!plyrInstances.length) {
       plyrInstances = [plyrInstances];
     }

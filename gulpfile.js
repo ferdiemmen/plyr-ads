@@ -2,18 +2,20 @@
 
 const gulp            = require('gulp');
 const sass            = require('gulp-sass');
-const browserSync     = require('browser-sync');
 const babel           = require('gulp-babel');
+const sourcemaps      = require('gulp-sourcemaps');
+const browserSync     = require('browser-sync');
+
+
+// Initialize BrowserSync
+browserSync.init({
+  server: {
+    baseDir: './docs'
+  }
+});
 
 
 gulp.task('demo', ['demo:build'], () => {
-  browserSync.init({
-    server: {
-      baseDir: './docs'
-    }
-  });
-
-  gulp.watch('./docs/**/*.html', [browserSync.reload]);
   gulp.watch('./src/scss/**/*.scss', ['demo:build:css']);
   gulp.watch('./src/js/**/*.js', ['demo:build:js']);
 });
@@ -39,9 +41,11 @@ gulp.task('demo:build:css', () => {
 
 gulp.task('demo:build:js', () => {
   return gulp.src('./src/js/plyr-ads.js')
+    .pipe(sourcemaps.init())
     .pipe(babel({
       presets: ['es2015']
     }))
+    .pipe(sourcemaps.write('.'))
     .pipe(gulp.dest('./docs/js'))
     .pipe(browserSync.reload({stream: true}));
 })

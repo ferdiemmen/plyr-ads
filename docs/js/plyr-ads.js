@@ -306,6 +306,10 @@ var PlyrAds = function () {
         _this.plyrInstance.play();
       }
     };
+
+    return {
+      init: this.init
+    };
   }
 
   _createClass(PlyrAds, null, [{
@@ -313,7 +317,7 @@ var PlyrAds = function () {
     value: function setup(plyrInstances, config) {
       var plyrAdInstances = [];
 
-      // Wrap single instances in an Array so we can loop it. 
+      // Wrap single instances in an Array so we can loop it.
       if (!plyrInstances.length) {
         plyrInstances = [plyrInstances];
       }
@@ -442,3 +446,4 @@ function _extend(target) {
 
   return _extend.apply(undefined, [target].concat(sources));
 }
+//# sourceMappingURL=plyr-ads.js.map
