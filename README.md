@@ -26,7 +26,7 @@ Preroll plugin for the awesome [Plyr](https://plyr.io) media player.
 
 If you have any cool ideas or features, please let me know by [creating an issue](https://github.com/ferdiemmen/plyr-ads/issues/new) or, of course, forking and sending a pull request.
 
-#### Options
+## Options
 Options must be passed as an object to the `setup()` method as above or as JSON in `data-plyr` attribute on each of your target elements:
 
 ```javascript
