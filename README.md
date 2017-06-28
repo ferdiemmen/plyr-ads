@@ -100,3 +100,9 @@ plyrAds.setup(player, options);
     </tr>
   </tbody>
 </table>
+
+## Thanks
+Thanks to Sam Potts who build the awesome [Plyr](https://plyr.io/) video player.
+
+## Copyright and License
+[The MIT license](license.md).
