@@ -26,6 +26,19 @@ Preroll plugin for the awesome [Plyr](https://plyr.io) media player.
 
 If you have any cool ideas or features, please let me know by [creating an issue](https://github.com/ferdiemmen/plyr-ads/issues/new) or, of course, forking and sending a pull request.
 
+## Initialising
+
+PlyrAds extends on one or many Plyr instance. **Make sure to include the Google IMA SDK.**
+
+```html
+<script type="text/javascript" src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
+```
+
+```javascript
+var player = plyr.setup();
+plyrAds.setup(player, options);
+```
+
 ## Options
 Options must be passed as an object to the `setup()` method as above or as JSON in `data-plyr` attribute on each of your target elements:
 
@@ -58,15 +71,6 @@ plyrAds.setup(player, {});
     </tr>
   </tbody>
 </table>  
-
-## Initialising
-
-PlyrAds extends on one or many Plyr instance. Make sure to include 
-
-```javascript
-var player = plyr.setup();
-plyrAds.setup(player, options);
-```
 
 ## Skip button options
 
