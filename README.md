@@ -102,7 +102,7 @@ plyrAds.setup(player, options);
 </table>
 
 ## Thanks
-Thanks to Sam Potts who build the awesome [Plyr](https://plyr.io/) video player.
+Thanks to Sam Potts and all his contributors who build the awesome [Plyr](https://plyr.io/) video player.
 
 ## Copyright and License
 [The MIT license](license.md).
