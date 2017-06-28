@@ -30,10 +30,12 @@ If you have any cool ideas or features, please let me know by [creating an issue
 
 PlyrAds extends on one or many Plyr instance. **Make sure to include the Google IMA SDK.**
 
+Html
 ```html
 <script type="text/javascript" src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
 ```
 
+Javascript
 ```javascript
 var player = plyr.setup();
 plyrAds.setup(player, options);
