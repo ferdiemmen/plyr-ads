@@ -59,7 +59,7 @@ plyrAds.setup(player, {});
   </tbody>
 </table>  
 
-#### Initialising
+## Initialising
 
 PlyrAds extends on one or many Plyr instance. Make sure to include 
 
@@ -68,7 +68,7 @@ var player = plyr.setup();
 plyrAds.setup(player, options);
 ```
 
-#### Skip button options
+## Skip button options
 
 <table class="table" width="100%" id="skipbutton-options">
   <thead>
