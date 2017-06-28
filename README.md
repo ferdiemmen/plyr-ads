@@ -28,7 +28,7 @@ If you have any cool ideas or features, please let me know by [creating an issue
 
 ## Initialising
 
-PlyrAds extends on one or many Plyr instance. **Make sure to include the Google IMA SDK.**
+PlyrAds extends on one or many Plyr instance. **Make sure to include the Google IMA SDK and ofcourse Plyr.**
 
 **Html**
 ```html
