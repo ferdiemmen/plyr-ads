@@ -46,7 +46,9 @@ Options must be passed as an object to the `setup()` method as above or as JSON 
 
 ```javascript
 var player = plyr.setup();
-plyrAds.setup(player, {});
+plyrAds.setup(player, {
+  adTagUrl: 'https://pubads.g.doubleclick.net/gampad/ads?sz=640x480&iu=/124319096/external/single_ad_samples&ciu_szs=300x250&impl=s&gdfp_req=1&env=vp&output=vast&unviewed_position_start=1&cust_params=deployment%3Ddevsite%26sample_ct%3Dlinear&correlator='
+});
 ```
 
 <table class="table" width="100%">
@@ -59,6 +61,12 @@ plyrAds.setup(player, {});
     </tr>
   </thead>
   <tbody>
+    <tr>
+      <td><code>adTagUrl</code></td>
+      <td>String</td>
+      <td><code>''</code></td>
+      <td>**required** A Google IMA compliant ad tag url.</td>
+    </tr>
     <tr>
       <td><code>container</code></td>
       <td>String</td>
