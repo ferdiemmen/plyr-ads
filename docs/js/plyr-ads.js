@@ -2,7 +2,7 @@
 
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v1.1.0
+// plyr-ads.js v1.1.1
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -91,6 +91,10 @@
     }
 
     this.init = () => {
+      if (!this.options.adTagUrl) {
+        throw Error('No adTagUrl provided.');
+      }
+
       // Add ad container to DOM.
       this.createAdDisplayContainer();
 
