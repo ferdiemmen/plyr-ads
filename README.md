@@ -68,12 +68,6 @@ plyrAds.setup(player, {
       <td>**required** A Google IMA compliant ad tag url.</td>
     </tr>
     <tr>
-      <td><code>container</code></td>
-      <td>String</td>
-      <td><code>'plyr-ads'</code></td>
-      <td>Change if you want a different class for the ad container.</td>
-    </tr>
-    <tr>
       <td><code>skipButton</code></td>
       <td>Object</td>
       <td><code>{enabled: true, text: 'Skip ad', delay: 10}</code></td>
