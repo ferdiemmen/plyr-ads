@@ -2,7 +2,7 @@
 
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v1.0.9
+// plyr-ads.js v1.1.0
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -34,8 +34,7 @@
 
   // Default config
   let defaults = {
-    container: 'plyr-ads',
-    classes: [],
+    adTagUrl: '',
     skipButton: {
       enabled: true,
       text: 'Skip ad',
@@ -43,7 +42,7 @@
     }
   };
 
-  // Check letiable types.
+  // Check variable types.
   let _is = {
     object: function (input) {
       return input !== null && typeof (input) === 'object';
