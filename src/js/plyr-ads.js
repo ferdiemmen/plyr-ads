@@ -2,7 +2,7 @@
 
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v1.1.1
+// plyr-ads.js v1.1.2
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -163,22 +163,30 @@
     this.skipAdButton = _insertElement('button', this.plyrContainer, {
       class: 'plyr-ads__skip-button'
     });
-    this.skipAdButton.innerHTML = 'You can skip to video in ' + (skipTimer--);
+    if (this.options.skipButton.delay > 0) {
+      this.skipAdButton.innerHTML = 'You can skip to video in ' + (skipTimer--);
 
-    let skipButtonTimer = window.setInterval(function waitForAd() {
-      if (!this.adPaused) {
-        this.skipAdButton.innerHTML = 'You can skip to video in ' + skipTimer--;
-      }
-      if ((skipTimer + 1) === 0) {
-        this.skipAdButton.className += ' done';
-        this.skipAdButton.innerHTML = this.options.skipButton.text;
+      let skipButtonTimer = window.setInterval(function waitForAd() {
+        if (!this.adPaused) {
+          this.skipAdButton.innerHTML = 'You can skip to video in ' + skipTimer--;
+        }
+        if ((skipTimer + 1) === 0 || this.options.skipButton.delay === 0) {
+          this.skipAdButton.className += ' done';
+          this.skipAdButton.innerHTML = this.options.skipButton.text;
 
-        // Set listener on ad skip button to skip the ad.
-        this.toggleListener(this.skipAdButton, this.playVideo);
+          // Set listener on ad skip button to skip the ad.
+          this.toggleListener(this.skipAdButton, this.playVideo);
 
-        window.clearInterval(skipButtonTimer);
-      }
-    }.bind(this), 1000);
+          window.clearInterval(skipButtonTimer);
+        }
+      }.bind(this), 1000);
+    } else {
+      this.skipAdButton.className += ' done';
+      this.skipAdButton.innerHTML = this.options.skipButton.text;
+
+      // Set listener on ad skip button to skip the ad.
+      this.toggleListener(this.skipAdButton, this.playVideo);
+    }
   }
 
   // Prepend child
@@ -323,7 +331,7 @@
           //         let remainingTime = Math.round(this.adsManager.getRemainingTime());
           //     }.bind(this),
           //     300); // every 300ms
-          if (ad.g.duration > 15) {
+          if (ad.g.duration > 15 || this.options.skipButton.delay === 0) {
             // Add ad skip button to DOM.
             this.createAdSkipButton();
           }
