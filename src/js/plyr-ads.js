@@ -227,8 +227,8 @@
       false);
     this.adsLoader.addEventListener(
       window.google.ima.AdErrorEvent.Type.AD_ERROR,
-      function() {
-        this.playVideo();
+      function(e) {
+        this.adDisplayContainer.I.remove();
       }.bind(this),
       false);
 
