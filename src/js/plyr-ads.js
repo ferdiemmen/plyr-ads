@@ -2,7 +2,7 @@
 
 // ==========================================================================
 // Plyr-Ads
-// plyr-ads.js v1.1.4
+// plyr-ads.js v1.1.5
 // https://github.com/ferdiemmen/plyr-ads
 // License: The MIT License (MIT)
 // ==========================================================================
@@ -119,7 +119,7 @@
       if (this.skipAdButton) {
         this.skipAdButton.remove();
       }
-      this.adDisplayContainer.I.remove();
+      this.plyrContainer.firstChild.remove();
 
       if (this.plyr.getType() === 'youtube' &&
         navigator.userAgent.match(/iPhone/i) ||
@@ -150,11 +150,11 @@
 
   function _createAdDisplayContainer() {
     this.adDisplayContainer = new window.google.ima.AdDisplayContainer(
-      this.plyr.getContainer());
-    this.adDisplayContainer.I.setAttribute('class', 'plyr-ads');
+      this.plyrContainer);
+    this.plyrContainer.firstChild.setAttribute('class', 'plyr-ads');
 
     // Set listener on ad display container to play the ad.
-    this.toggleListener(this.adDisplayContainer.I, this.playAds);
+    this.toggleListener(this.plyrContainer.firstChild, this.playAds);
   }
 
   function _createAdSkipButton() {
@@ -228,7 +228,7 @@
     this.adsLoader.addEventListener(
       window.google.ima.AdErrorEvent.Type.AD_ERROR,
       function(e) {
-        this.adDisplayContainer.I.remove();
+        this.plyrContainer.firstChild.remove();
       }.bind(this),
       false);
 
@@ -434,13 +434,17 @@
 
   function _toggleListener(element, cb) {
     let startEvent;
+
+    var triggerCallback = function(event) {
+      if (event.type === 'touchend' && startEvent === 'touchstart' || event.type === 'click') {
+        cb();
+      }
+      startEvent = event.type;
+      element.removeEventListener(event.type, triggerCallback);
+    }
+
     for (let touchEvent of _getEvents()) {
-      element.addEventListener(touchEvent, function(event) {
-        if (event.type === 'touchend' && startEvent === 'touchstart' || event.type === 'click') {
-          cb();
-        }
-        startEvent = event.type;
-      }, false);
+      element.addEventListener(touchEvent, triggerCallback, false);
     }
   }
 
