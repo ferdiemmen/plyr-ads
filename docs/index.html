@@ -8,7 +8,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <!-- Styles -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/plyr/2.0.13/plyr.css">
+        <link rel="stylesheet" href="css/plyr.css">
         <link rel="stylesheet" href="css/plyr-ads.css">
 
         <!-- Docs styles -->
@@ -23,22 +23,22 @@
             <section>
                 <div>
                     <h2>Html 5</h2>
-                    <video poster="https://cdn.selz.com/plyr/1.5/View_From_A_Blue_Moon_Trailer-HD.jpg?v1" controls crossorigin>
+                    <video class="js-player" poster="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.jpg?v1" controls crossorigin>
                         <!-- Video files -->
-                        <source src="https://cdn.selz.com/plyr/1.5/View_From_A_Blue_Moon_Trailer-HD.mp4" type="video/mp4">
-                        <source src="https://cdn.selz.com/plyr/1.5/View_From_A_Blue_Moon_Trailer-HD.webm" type="video/webm">
+                        <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.mp4" type="video/mp4">
+                        <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.webm" type="video/webm">
 
                         <!-- Text track file -->
-                        <track kind="captions" label="English" srclang="en" src="https://cdn.selz.com/plyr/1.5/View_From_A_Blue_Moon_Trailer-HD.en.vtt" default>
+                        <track kind="captions" label="English" srclang="en" src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.en.vtt" default>
 
                         <!-- Fallback for browsers that don't support the <video> element -->
-                        <a href="https://cdn.selz.com/plyr/1.5/View_From_A_Blue_Moon_Trailer-HD.mp4" download>Download</a>
+                        <a href="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.mp4" download>Download</a>
                     </video>
                 </div>
 
                 <div>
                     <h2>Youtube</h2>
-                    <div data-type="youtube" data-video-id="https://www.youtube.com/embed/bTqVqk7FSmY?autoplay=0&controls=0&rel=0&showinfo=0&iv_load_policy=3&cc_load_policy=1&cc_lang_pref=en&wmode=transparent&modestbranding=1&disablekb=1&enablejsapi=1&widgetid=1"></div>
+                    <div class="js-player" data-plyr-provider="youtube" data-plyr-embed-id="bTqVqk7FSmY"></div>
                 </div>
             </section>
         </main>
@@ -47,7 +47,7 @@
         <script type="text/javascript" src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
 
         <!-- Plyr core script -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/plyr/2.0.13/plyr.js"></script>
+        <script src="js/plyr.js"></script>
 
         <!-- Plyr ads script -->
         <script src="js/plyr-ads.js"></script>

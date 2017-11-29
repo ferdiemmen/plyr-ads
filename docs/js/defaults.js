@@ -1,0 +1,2 @@
+(function(global,factory){if(typeof define==="function"&&define.amd){define(['exports'],factory);}else if(typeof exports!=="undefined"){factory(exports);}else{var mod={exports:{}};factory(mod.exports);global.defaults=mod.exports;}})(this,function(exports){'use strict';Object.defineProperty(exports,"__esModule",{value:true});var defaults={adTagUrl:'',skipButton:{enabled:true,text:'Skip ad',delay:10}};exports.default=defaults;});
+//# sourceMappingURL=defaults.js.map
