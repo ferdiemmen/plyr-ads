@@ -1,12 +1,16 @@
 'use strict';
 
-const gulp        = require('gulp');
-const path        = require('path');
-const sourcemaps  = require('gulp-sourcemaps');
-const rollup      = require('gulp-better-rollup');
-const babel       = require('rollup-plugin-babel');
-const commonjs    = require('rollup-plugin-commonjs');
-const resolve     = require('rollup-plugin-node-resolve');
+const gulp          = require('gulp');
+const util          = require('gulp-util');
+const sass          = require('gulp-sass');
+const path          = require('path');
+const sourcemaps    = require('gulp-sourcemaps');
+const rollup        = require('gulp-better-rollup');
+const babel         = require('rollup-plugin-babel');
+const commonjs      = require('rollup-plugin-commonjs');
+const resolve       = require('rollup-plugin-node-resolve');
+const browserSync   = require('browser-sync');
+
 
 // Browserlist
 const browsers = ['> 1%'];
@@ -29,6 +33,7 @@ const babelrc = {
   exclude: 'node_modules/**',
 };
 
+
 // Paths
 const root = process.cwd();
 const paths = {
@@ -50,6 +55,11 @@ const paths = {
   }
 }
 
+
+// Default
+gulp.task('default', ['demo']);
+
+
 // Javascript
 gulp.task('js', () => {
   return gulp.src(paths.js.src)
@@ -70,6 +80,24 @@ gulp.task('js', () => {
 
 // Stylesheets
 gulp.task('css', () => {
-  return gulp.src(path.css.src)
-    .pipe(gulp.dest(path.css.dest))
+  return gulp.src(paths.css.src)
+    .pipe(sass().on('error', sass.logError))
+    .pipe(gulp.dest(paths.css.dest))
+    .pipe(gulp.dest(paths.demo.css.dest));
+});
+
+
+// BrowserSync
+gulp.task('demo', ['js', 'css'], () => {
+
+  browserSync.init({
+    server: {
+      baseDir: './demo'
+    }
+  });
+
+  if (util.env.watch) {
+    gulp.watch(paths.css.src, ['css']);
+    gulp.watch(paths.js.src, ['js']);
+  }
 });

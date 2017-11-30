@@ -9,6 +9,10 @@ class PlyrAds {
       options
     };
   }
+
+  foo() {
+    console.log('bar');
+  }
 }
 
 export default PlyrAds;
