@@ -2,11 +2,12 @@
 
 const gulp            = require('gulp');
 const sass            = require('gulp-sass');
-const babel           = require('gulp-babel');
 const cssnano         = require('gulp-cssnano');
 const postcss         = require('gulp-postcss');
 const rename          = require('gulp-rename');
 const uglify          = require('gulp-uglify');
+const rollup          = require('gulp-better-rollup');
+const babel           = require('rollup-plugin-babel');
 const sourcemaps      = require('gulp-sourcemaps');
 const browserSync     = require('browser-sync');
 
@@ -39,7 +40,7 @@ gulp.task('demo:build:css', () => {
   return gulp.src('./src/scss/plyr-ads.scss')
     .pipe(sourcemaps.init())
     .pipe(sass())
-    .pipe(sourcemaps.write('.'))
+    .pipe(sourcemaps.write(''))
     .pipe(gulp.dest('./docs/css'))
     .pipe(browserSync.reload({stream: true}));
   });
@@ -48,12 +49,14 @@ gulp.task('demo:build:css', () => {
   gulp.task('demo:build:js', () => {
     return gulp.src('./src/js/*.js')
     .pipe(sourcemaps.init())
-    .pipe(babel({
-      presets: ['env', 'stage-3'],
-      compact: true,
-      plugins: ['transform-es2015-modules-umd']
+    .pipe(rollup({
+      plugins: [babel({
+        presets: ['stage-3']
+      })]
+    }, {
+      format: 'umd'
     }))
-    .pipe(sourcemaps.write('.'))
+    .pipe(sourcemaps.write(''))
     .pipe(gulp.dest('./docs/js'))
     .pipe(browserSync.reload({stream: true}));
 });
@@ -83,23 +86,13 @@ gulp.task('build:css', () => {
 gulp.task('build:js', () => {
 
   return gulp.src('./src/js/*.js')
-    .pipe(babel({
-      presets: ['env', 'stage-3'],
-      compact: true,
-      plugins: ['transform-es2015-modules-umd']
+    .pipe(rollup({
+      plugins: [babel({
+        presets: ['env', 'stage-3']
+      })]
+    }, {
+      format: 'umd'
     }))
-    .pipe(uglify({
-      preserveComments: false,
-      mangle: true,
-      sequences: true,
-      dead_code: true,
-      conditionals: true,
-      booleans: true,
-      unused: true,
-      if_return: true,
-      join_vars: true,
-      drop_console: true,
-    })).on('error', gutil.log)
     .pipe(gulp.dest('./demo'))
     .pipe(gulp.dest('./dist'))
 });
