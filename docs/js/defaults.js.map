@@ -1,1 +1,0 @@
-{"version":3,"file":"defaults.js","sources":["src/js/defaults.js"],"sourcesContent":["\nconst defaults = {\n    adTagUrl: '',\n    skipButton: {\n        enabled: true,\n        text: 'Skip ad',\n        delay: 10\n    }\n}\n\nexport default defaults;"],"names":["defaults"],"mappings":";;;;;;AACA,MAAMA,WAAW;cACH,EADG;gBAED;iBACC,IADD;cAEF,SAFE;eAGD;;CALf;;;;;;;;"}
