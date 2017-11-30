@@ -74,7 +74,8 @@ gulp.task('js', () => {
     }))
     .pipe(sourcemaps.write())
     .pipe(gulp.dest(paths.js.dest))
-    .pipe(gulp.dest(paths.demo.js.dest));
+    .pipe(gulp.dest(paths.demo.js.dest))
+    .pipe(browserSync.reload({ stream: true }));
 });
 
 
@@ -83,7 +84,8 @@ gulp.task('css', () => {
   return gulp.src(paths.css.src)
     .pipe(sass().on('error', sass.logError))
     .pipe(gulp.dest(paths.css.dest))
-    .pipe(gulp.dest(paths.demo.css.dest));
+    .pipe(gulp.dest(paths.demo.css.dest))
+    .pipe(browserSync.reload({ stream: true }));
 });
 
 
