@@ -4,15 +4,27 @@ import defaults from './defaults';
 class PlyrAds {
 
   constructor(target, options) {
-    this.config = {
-      ...defaults,
-      options
-    };
+    this.config = this._mergedConfig(defaults, options);
+    this.plyr = target;
+
+    // Set listeners on plyr media events
+    this._setListeners();
   }
 
-  foo() {
-    console.log('bar');
+  _mergedConfig(defaults, options) {
+    return {...defaults, ...options};
+  }
+
+  _setListeners() {
+
+    // Progress
+    this.plyr.on('progress', (event) => {
+      const { currentTime } = event.detail.plyr;
+      console.log(currentTime);
+    });
   }
 }
 
-export default PlyrAds;
+export default {
+  init: (target, options) => new PlyrAds(target, options)
+};

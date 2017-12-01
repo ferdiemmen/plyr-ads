@@ -46,6 +46,7 @@ const paths = {
     dest: path.join(root, 'dist')
   },
   demo: {
+    src: path.join(root, 'demo', '**', '*'),
     js: {
       dest: path.join(root, 'demo', 'js')
     },
@@ -93,8 +94,12 @@ gulp.task('css', () => {
 gulp.task('demo', ['js', 'css'], () => {
 
   browserSync.init({
+    open: false,
+    files: [
+      paths.demo.src
+    ],
     server: {
-      baseDir: './demo'
+      baseDir: './demo',
     }
   });
 
