@@ -10,6 +10,7 @@ class PlyrAds {
     this.plyr = target;
     this.adDisplayContainer;
     this.adDisplayElement;
+    this.adsManager;
 
     // Check if a adTagUrl us provided.
     if (!this.config.adTagUrl) { throw new Error('No adTagUrl provided.'); }
@@ -28,8 +29,147 @@ class PlyrAds {
 
   _setupIMA() {
     // Request video ads.
-    this.adsRequest = new google.ima.AdsRequest();
-    this.adsRequest.adTagUrl = 'https' // this.config.adTagUrl;
+    const adsRequest = new google.ima.AdsRequest();
+    adsRequest.adTagUrl = this.config.adTagUrl;
+
+    // Create ads loader.
+    this.adsLoader = new google.ima.AdsLoader(this.adDisplayContainer);
+
+    // Listen and respond to ads loaded and error events.
+    this.adsLoader.addEventListener(
+        google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
+        this._onAdsManagerLoaded.bind(this),
+        false);
+    this.adsLoader.addEventListener(
+        google.ima.AdErrorEvent.Type.AD_ERROR,
+        this._onAdError.bind(this),
+        false);
+
+    // An event listener to tell the SDK that our content video
+    // is completed so the SDK can play any post-roll ads.
+    // const contentEndedListener = () => { 
+    //   this.adsLoader.contentComplete();
+    // };
+    // videoContent.onended = contentEndedListener;
+
+    // Specify the linear and nonlinear slot sizes. This helps the SDK to
+    // select the correct creative if multiple are returned.
+    adsRequest.linearAdSlotWidth = 640;
+    adsRequest.linearAdSlotHeight = 400;
+
+    adsRequest.nonLinearAdSlotWidth = 640;
+    adsRequest.nonLinearAdSlotHeight = 150;
+
+    this.adsLoader.requestAds(adsRequest);
+  }
+
+  _onAdsManagerLoaded(adsManagerLoadedEvent) {
+
+    const { original } = this.plyr.elements;
+
+    // Get the ads manager.
+    const adsRenderingSettings = new google.ima.AdsRenderingSettings();
+    adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
+
+    // videoContent should be set to the content video element.
+    this.adsManager = adsManagerLoadedEvent.getAdsManager(
+      original, adsRenderingSettings);
+
+    console.log(this.adsManager);
+
+    console.log(this.adsManager.getCuePoints());
+
+    // Add listeners to the required events.
+    this.adsManager.addEventListener(
+        google.ima.AdErrorEvent.Type.AD_ERROR,
+        this._onAdError.bind(this));
+    this.adsManager.addEventListener(
+        google.ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED,
+        this._onContentPauseRequested.bind(this));
+    this.adsManager.addEventListener(
+        google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
+        this._onContentResumeRequested.bind(this));
+    this.adsManager.addEventListener(
+        google.ima.AdEvent.Type.ALL_ADS_COMPLETED,
+        this._onAdEvent.bind(this));
+
+    // Listen to any additional events, if necessary.
+    this.adsManager.addEventListener(
+        google.ima.AdEvent.Type.LOADED,
+        this._onAdEvent.bind(this));
+    this.adsManager.addEventListener(
+        google.ima.AdEvent.Type.STARTED,
+        this._onAdEvent.bind(this));
+    this.adsManager.addEventListener(
+        google.ima.AdEvent.Type.COMPLETE,
+        this._onAdEvent.bind(this));
+  }
+
+  _onAdEvent(adEvent) {
+    
+    // Retrieve the ad from the event. Some events (e.g. ALL_ADS_COMPLETED)
+    // don't have ad object associated.
+    const ad = adEvent.getAd();
+    let intervalTimer;
+    
+    switch (adEvent.type) {
+      case google.ima.AdEvent.Type.LOADED:
+        // This is the first event sent for an ad - it is possible to
+        // determine whether the ad is a video ad or an overlay.
+        if (!ad.isLinear()) {
+          // Position AdDisplayContainer correctly for overlay.
+          // Use ad.width and ad.height.
+          this.plyr.play();
+        }
+        break;
+      case google.ima.AdEvent.Type.STARTED:
+        // This event indicates the ad has started - the video player
+        // can adjust the UI, for example display a pause button and
+        // remaining time.
+        if (ad.isLinear()) {
+          // For a linear ad, a timer can be started to poll for
+          // the remaining time.
+          intervalTimer = setInterval(
+              () => {
+                let remainingTime = this.adsManager.getRemainingTime();
+                console.log(remainingTime);
+              },
+              300); // every 300ms
+        }
+        break;
+      case google.ima.AdEvent.Type.COMPLETE:
+        // This event indicates the ad has finished - the video player
+        // can perform appropriate UI actions, such as removing the timer for
+        // remaining time detection.
+        clearInterval(intervalTimer);
+        break;
+    }
+  }
+
+  _onAdError(adErrorEvent) {
+    
+    // Handle the error logging.
+    this.adsManager.destroy();
+    this.adDisplayElement.remove();
+
+    if (this.config.debug) {
+      throw new Error(adErrorEvent);
+    }
+  }
+  
+  _onContentPauseRequested() {
+    this.plyr.pause();
+    // This function is where you should setup UI for showing ads (e.g.
+    // display ad timer countdown, disable seeking etc.)
+    // setupUIForAds();
+  }
+
+  _onContentResumeRequested() {
+    this.plyr.play();
+    // This function is where you should ensure that your UI is ready
+    // to play content. It is the responsibility of the Publisher to
+    // implement this function when necessary.
+    // setupUIForContent();
   }
 
   _setupAdDisplayContainer() {
@@ -56,17 +196,17 @@ class PlyrAds {
   _playAds() {
     const { container } = this.plyr.elements;
 
-    // Initialize the container. Must be done via a user action on mobile devices.
-    this.adDisplayContainer.initialize();
-
     try {
+      // Initialize the container. Must be done via a user action on mobile devices.
+      this.adDisplayContainer.initialize();
+  
       // Initialize the ads manager. Ad rules playlist will start at this time.
       this.adsManager.init(
         container.offsetWidth,
         container.offsetHeight,
-        window.google.ima.ViewMode.NORMAL
+        google.ima.ViewMode.NORMAL
       );
-  
+
       // Call play to start showing the ad. Single video and overlay ads will
       // start at this time; the call will be ignored for ad rules.
       this.adsManager.start();
