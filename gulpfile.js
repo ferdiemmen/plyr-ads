@@ -5,6 +5,7 @@ const util          = require('gulp-util');
 const sass          = require('gulp-sass');
 const path          = require('path');
 const sourcemaps    = require('gulp-sourcemaps');
+const plumber       = require('gulp-plumber');
 const rollup        = require('gulp-better-rollup');
 const babel         = require('rollup-plugin-babel');
 const commonjs      = require('rollup-plugin-commonjs');
@@ -65,6 +66,7 @@ gulp.task('default', ['demo']);
 gulp.task('js', () => {
   return gulp.src(paths.js.src)
     .pipe(sourcemaps.init())
+    .pipe(plumber())
     .pipe(rollup({
       plugins: [
         resolve(),

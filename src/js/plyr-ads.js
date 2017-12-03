@@ -11,6 +11,7 @@ class PlyrAds {
     this.adDisplayContainer;
     this.adDisplayElement;
     this.adsManager;
+    this.currentTime = 0;
 
     // Check if a adTagUrl us provided.
     if (!this.config.adTagUrl) { throw new Error('No adTagUrl provided.'); }
@@ -71,13 +72,16 @@ class PlyrAds {
     const adsRenderingSettings = new google.ima.AdsRenderingSettings();
     adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
 
+    const contentPlayback = {
+      currentTime: this.currentTime,
+      duration: this.plyr.duration
+    };
+
     // videoContent should be set to the content video element.
     this.adsManager = adsManagerLoadedEvent.getAdsManager(
-      original, adsRenderingSettings);
+      contentPlayback, adsRenderingSettings);
 
-    console.log(this.adsManager);
-
-    console.log(this.adsManager.getCuePoints());
+    // console.log(this.adsManager.getCuePoints());
 
     // Add listeners to the required events.
     this.adsManager.addEventListener(
@@ -110,7 +114,7 @@ class PlyrAds {
     // Retrieve the ad from the event. Some events (e.g. ALL_ADS_COMPLETED)
     // don't have ad object associated.
     const ad = adEvent.getAd();
-    let intervalTimer;
+    // let intervalTimer;
     
     switch (adEvent.type) {
       case google.ima.AdEvent.Type.LOADED:
@@ -129,19 +133,19 @@ class PlyrAds {
         if (ad.isLinear()) {
           // For a linear ad, a timer can be started to poll for
           // the remaining time.
-          intervalTimer = setInterval(
-              () => {
-                let remainingTime = this.adsManager.getRemainingTime();
-                console.log(remainingTime);
-              },
-              300); // every 300ms
+          // intervalTimer = setInterval(
+          //     () => {
+          //       let remainingTime = this.adsManager.getRemainingTime();
+          //       console.log(remainingTime);
+          //     },
+          //     300); // every 300ms
         }
         break;
       case google.ima.AdEvent.Type.COMPLETE:
         // This event indicates the ad has finished - the video player
         // can perform appropriate UI actions, such as removing the timer for
         // remaining time detection.
-        clearInterval(intervalTimer);
+        // clearInterval(intervalTimer);
         break;
     }
   }
@@ -196,31 +200,31 @@ class PlyrAds {
   _playAds() {
     const { container } = this.plyr.elements;
 
-    try {
-      // Initialize the container. Must be done via a user action on mobile devices.
-      this.adDisplayContainer.initialize();
-  
-      // Initialize the ads manager. Ad rules playlist will start at this time.
-      this.adsManager.init(
-        container.offsetWidth,
-        container.offsetHeight,
-        google.ima.ViewMode.NORMAL
-      );
+    // Initialize the container. Must be done via a user action on mobile devices.
+    this.adDisplayContainer.initialize();
 
-      // Call play to start showing the ad. Single video and overlay ads will
-      // start at this time; the call will be ignored for ad rules.
-      this.adsManager.start();
+    // Initialize the ads manager. Ad rules playlist will start at this time.
+    this.adsManager.init(
+      container.offsetWidth,
+      container.offsetHeight,
+      google.ima.ViewMode.NORMAL
+    );
+
+    // Call play to start showing the ad. Single video and overlay ads will
+    // start at this time; the call will be ignored for ad rules.
+    this.adsManager.start();
+    // try {
     
-    } catch (adError) {
+    // } catch (adError) {
 
-      // An error may be thrown if there was a problem with the VAST response.
-      this.plyr.play();
-      this.adDisplayElement.remove();
+    //   // An error may be thrown if there was a problem with the VAST response.
+    //   this.plyr.play();
+    //   this.adDisplayElement.remove();
 
-      if (this.config.debug) {
-        throw new Error(adError);
-      }
-    }
+    //   if (this.config.debug) {
+    //     throw new Error(adError);
+    //   }
+    // }
   }
 
   // Set's a click event listener on a DOM element and triggers the
