@@ -14,14 +14,14 @@ var player = new Plyr(document.querySelectorAll('.js-player'));
 
 function init() {
   videoContent = document.getElementById('contentElement');
-  
+
   const { play } = player.elements.buttons;
   const { container } = player.elements;
-  
+
   play[0].addEventListener('click', playAds, {once: true});
   play[1].addEventListener('click', playAds, {once: true});
   container.addEventListener('click', playAds, {once: true});
-  
+
   setUpIMA();
 }
 
