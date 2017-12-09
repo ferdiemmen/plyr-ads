@@ -30,6 +30,9 @@ function setUpIMA() {
   createAdDisplayContainer();
   // Create ads loader.
   adsLoader = new google.ima.AdsLoader(adDisplayContainer);
+
+  adsLoader.getSettings().setDisableCustomPlaybackForIOS10Plus(true);
+
   // Listen and respond to ads loaded and error events.
   adsLoader.addEventListener(
       google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
@@ -48,7 +51,7 @@ function setUpIMA() {
   // Request video ads.
   var adsRequest = new google.ima.AdsRequest();
   // adsRequest.adTagUrl = 'https://go.aniview.com/api/adserver6/vast/?AV_PUBLISHERID=58c25bb0073ef448b1087ad6&AV_CHANNELID=5a0458dc28a06145e4519d21&AV_URL=https://localhost&cb=1510865475441&AV_WIDTH=640&AV_HEIGHT=480';
-  adsRequest.adTagUrl = 'https://pubads.g.doubleclick.net/gampad/ads?sz=640x480&iu=/124319096/external/ad_rule_samples&ciu_szs=300x250&ad_rule=1&impl=s&gdfp_req=1&env=vp&output=vmap&unviewed_position_start=1&cust_params=deployment%3Ddevsite%26sample_ar%3Dpremidpost&cmsid=496&vid=short_onecue&correlator=';
+  adsRequest.adTagUrl = `http://search.spotxchange.com/vast/2.0/85394?VPAID=JS&content_page_url=http://localhost:5000&cb=${+new Date()}&player_width=640&player_height=480`;
 
   // Specify the linear and nonlinear slot sizes. This helps the SDK to
   // select the correct creative if multiple are returned.

@@ -3,18 +3,23 @@
 const gulp          = require('gulp');
 const util          = require('gulp-util');
 const sass          = require('gulp-sass');
-const path          = require('path');
+const size          = require('gulp-size');
 const sourcemaps    = require('gulp-sourcemaps');
 const plumber       = require('gulp-plumber');
 const rollup        = require('gulp-better-rollup');
 const babel         = require('rollup-plugin-babel');
-const commonjs      = require('rollup-plugin-commonjs');
+const uglify        = require('rollup-plugin-uglify');
+const { minify }    = require('uglify-es');
 const resolve       = require('rollup-plugin-node-resolve');
+const path          = require('path');
 const browserSync   = require('browser-sync');
 
 
 // Browserlist
 const browsers = ['> 1%'];
+
+// Size plugin
+const sizeOptions = { showFiles: true, gzip: true };
 
 // Babel config
 const babelrc = {
@@ -70,22 +75,27 @@ gulp.task('js', () => {
     .pipe(rollup({
       plugins: [
         resolve(),
-        babel(babelrc)
+        babel(babelrc),
+        uglify({}, minify)
       ]
     }, {
       name: 'PlyrAds', format: 'umd',
     }))
+    .pipe(size(sizeOptions))
     .pipe(sourcemaps.write())
     .pipe(gulp.dest(paths.js.dest))
     .pipe(gulp.dest(paths.demo.js.dest))
     .pipe(browserSync.reload({ stream: true }));
-});
-
-
-// Stylesheets
-gulp.task('css', () => {
-  return gulp.src(paths.css.src)
+  });
+  
+  
+  // Stylesheets
+  gulp.task('css', () => {
+    return gulp.src(paths.css.src)
+    .pipe(sourcemaps.init())
     .pipe(sass().on('error', sass.logError))
+    .pipe(size(sizeOptions))
+    .pipe(sourcemaps.write())
     .pipe(gulp.dest(paths.css.dest))
     .pipe(gulp.dest(paths.demo.css.dest))
     .pipe(browserSync.reload({ stream: true }));
