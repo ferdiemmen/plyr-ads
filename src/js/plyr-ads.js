@@ -1,39 +1,51 @@
-
+ 
 /**
  * TODO
- * 
- * - Responsive on scaling
- * - Request next ad https://developers.google.com/interactive-media-ads/docs/sdks/html5/faq#8
- */ 
+ * - When seeking mid rolls start playing after seeked.
+ *   Possible solution: Invoke discardAdBreak for every skipped mid-roll.
+ */
 
 
 import defaults from './defaults';
+import { utils } from './utils';
 
 class PlyrAds {
 
   constructor(target, options) {
-    this.config = this._mergedConfig(defaults, options);
-    this.config.startEvents = this._getStartEvents();
+    
+    // Set config
+    this.config = utils.mergeConfig(defaults, options);
+
+    // Check if a adTagUrl us provided.
+    if (!this.config.adTagUrl && this.config.debug) {
+      if (this.config.debug) {
+        throw new Error('No adTagUrl provided.');
+      }
+      return;
+    }
+
+    // Check if the Google IMA3 SDK is loaded.
+    if (!window.google) {
+      if (this.config.debug) {
+        throw new Error('The Google IMA3 SDK is not loaded.');
+      }
+      return;
+    }
     
     this.plyr = target;
+    this.startEvents = utils.getStartEvents();
     this.adDisplayContainer;
     this.adDisplayElement;
     this.adsManager;
     this.adsLoader;
     this.videoElement = document.createElement('video');
 
-    // Check if a adTagUrl us provided.
-    if (!this.config.adTagUrl) { throw new Error('No adTagUrl provided.'); }
-
-    // Check if the Google IMA3 SDK is loaded.
-    if (!window.google) { throw new Error('The Google IMA3 SDK is not loaded.'); }
-
     // Setup the ad display container.
     this._setupAdDisplayContainer();
-
+    
     // Setup the IMA SDK.
     this._setupIMA();
-
+  
     // Set listeners on the Plyr instance.
     this._setupListeners();
   }
@@ -128,6 +140,7 @@ class PlyrAds {
     switch (adEvent.type) {
       case google.ima.AdEvent.Type.LOADED:
         console.log('LOADED');
+        this.adDisplayElement.style.display = 'block';
         // This is the first event sent for an ad - it is possible to
         // determine whether the ad is a video ad or an overlay.
         if (!ad.isLinear()) {
@@ -138,36 +151,35 @@ class PlyrAds {
         }
         break;
       case google.ima.AdEvent.Type.STARTED:
-        console.log('STARTED')
+        console.log('STARTED');
         // Show the ad display element.
-        this.adDisplayElement.style.display = 'block';
-  //       // This event indicates the ad has started - the video player
-  //       // can adjust the UI, for example display a pause button and
-  //       // remaining time.
-  //       if (ad.isLinear()) {
-  //         // For a linear ad, a timer can be started to poll for
-  //         // the remaining time.
-  //         // intervalTimer = setInterval(
-  //         //     () => {
-  //         //       let remainingTime = this.adsManager.getRemainingTime();
-  //         //       console.log(remainingTime);
-  //         //     },
-  //         //     300); // every 300ms
-  //       }
+        // This event indicates the ad has started - the video player
+        // can adjust the UI, for example display a pause button and
+        // remaining time.
+        // if (ad.isLinear()) {
+          // For a linear ad, a timer can be started to poll for
+          // the remaining time.
+          // intervalTimer = setInterval(
+          //     () => {
+          //       let remainingTime = this.adsManager.getRemainingTime();
+          //       console.log(remainingTime);
+          //     },
+          //     300); // every 300ms
+        // }
         break;
       case google.ima.AdEvent.Type.COMPLETE:
-        console.log('COMPLETE');
+        // This event indicates the ad has finished - the video player
+        // can perform appropriate UI actions, such as removing the timer for
+        // remaining time detection.
+        // clearInterval(intervalTimer);
+
         this.adDisplayElement.style.display = 'none';
         if (this.plyr.currentTime < this.plyr.duration) {
           this.plyr.play();
         }
-  //       // This event indicates the ad has finished - the video player
-  //       // can perform appropriate UI actions, such as removing the timer for
-  //       // remaining time detection.
-  //       // clearInterval(intervalTimer);
         break;
       case google.ima.AdEvent.Type.ALL_ADS_COMPLETED:
-        console.log('ALL_ADS_COMPLETED');
+        this._emitEvent('ALL_ADS_COMPLETED');
         this.plyr.stop();
       default:
         break;
@@ -188,20 +200,25 @@ class PlyrAds {
     }
   }
   
+  /**
+   * This function is where you should setup UI for showing ads (e.g.
+   * display ad timer countdown, disable seeking etc.)
+   */
   _onContentPauseRequested() {
-    console.log('CONTENT_RESUME_REQUESTED');
-  //   // This function is where you should setup UI for showing ads (e.g.
-  //   // display ad timer countdown, disable seeking etc.)
-  //   // setupUIForAds();
+
+    // Pause the player.
+    this.plyr.pause();
   }
 
+  /**
+   * This function is where you should ensure that your UI is ready
+   * to play content. It is the responsibility of the Publisher to
+   * implement this function when necessary.
+   */
   _onContentResumeRequested() {
-    console.log('CONTENT_RESUME_REQUESTED');
-  //   this.plyr.play();
-  //   // This function is where you should ensure that your UI is ready
-  //   // to play content. It is the responsibility of the Publisher to
-  //   // implement this function when necessary.
-  //   // setupUIForContent();
+
+    // Resume the player.
+    this.plyr.play();
   }
 
   _setupAdDisplayContainer() {
@@ -213,7 +230,7 @@ class PlyrAds {
 
     this.adDisplayElement = container.firstChild;
 
-    // The AdDisplayContainer call from google ima sets the style attribute
+    // The AdDisplayContainer call from google IMA sets the style attribute
     // by default. We remove the inline style and set it through the stylesheet.
     this.adDisplayElement.removeAttribute('style');
     
@@ -230,55 +247,90 @@ class PlyrAds {
     // Initialize the container. Must be done via a user action on mobile devices.
     this.adDisplayContainer.initialize();
 
-    // Initialize the ads manager. Ad rules playlist will start at this time.
-    this.adsManager.init(
-      container.offsetWidth,
-      container.offsetHeight,
-      google.ima.ViewMode.NORMAL
-    );
+    try { 
+      
+      // Initialize the ads manager. Ad rules playlist will start at this time.
+      this.adsManager.init(
+        container.offsetWidth,
+        container.offsetHeight,
+        google.ima.ViewMode.NORMAL
+      );
 
-    // Call play to start showing the ad. Single video and overlay ads will
-    // start at this time; the call will be ignored for ad rules.
-    this.adsManager.start();
-    
-    // try {
-    
-    // } catch (adError) {
+      // Call play to start showing the ad. Single video and overlay ads will
+      // start at this time; the call will be ignored for ad rules.
+      this.adsManager.start();
 
-    //   // An error may be thrown if there was a problem with the VAST response.
-    //   this.plyr.play();
-    //   this.adDisplayElement.remove();
+    } catch (adError) {
 
-    //   if (this.config.debug) {
-    //     throw new Error(adError);
-    //   }
-    // }
+      // An error may be thrown if there was a problem with the VAST response.
+      this.plyr.play();
+      this.adDisplayElement.remove();
+
+      if (this.config.debug) {
+        throw new Error(adError);
+      }
+    }
   }
 
+  /**
+   * Setup hooks for Plyr and window events. This ensures
+   * the mid- and post-roll launch at the correct time. And
+   * resize the advertisement when the player resizes.
+   */
   _setupListeners() {
+    const { container } = this.plyr.elements;
 
     // Add listeners to the required events.
-    this.plyr.on('ended', (event) => {
-      console.log('ENDED');
+    this.plyr.on('ended', event => {
       this.adsLoader.contentComplete();
     });
-    this.plyr.on('timeupdate', (event) => {
+
+    this.plyr.on('timeupdate', event => {
       const { currentTime } = event.detail.plyr;
       this.videoElement.currentTime = Math.ceil(currentTime);
     });
-    this.plyr.on('statechange', (event) => {
-      if (event.detail.code === 1) {
-        console.log('YOUTUBE ENDED');
-        this.adsLoader.contentComplete();
-      } 
+    
+    this.plyr.on('seeked', event => {
+      const { currentTime } = event.detail.plyr;
+      const cuePoints = this.adsManager.getCuePoints();
+
+      let adsSkipped = 0;
+
+      // Count the amount of mid-rolls which will be
+      // skipped.
+      for (let i = 0; i < cuePoints.length; i++) {
+        const cuePoint = cuePoints[i];
+        if (cuePoint < currentTime && cuePoint !== -1 && cuePoint !== 0) {
+          adsSkipped++;
+        }
+      }
+
+      // Discard ad breaks for every mid-roll skipped.
+      // This ensures the mid-rolls don't start running when the 
+      // video is seeked past a mid-roll.
+      for (let j = 0; j < adsSkipped; j++) {
+        this.adsManager.discardAdBreak();
+      }
     });
 
+    // Listen to the resizing of the window. And resize ad accordingly.
+    window.addEventListener('resize', () => {
+      this.adsManager.resize(
+        container.offsetWidth,
+        container.offsetHeight,
+        google.ima.ViewMode.NORMAL
+      );
+    });
   }
 
-  // Set's a start event listener on a DOM element and triggers the
-  // callback when clicked. 
+  /**
+   * Set start event listener on a DOM element and triggers the
+   * callback when clicked.
+   * @param {HtmlElment} element - The element on which to set the listener 
+   * @param {Function} callback - The callback which will be invoked once triggered.
+   */ 
   _setOnClickHandler(element, callback) {
-    for (let startEvent of this.config.startEvents) {
+    for (let startEvent of this.startEvents) {
       element.addEventListener(startEvent, (event) => {
         if (event.type === 'touchend' &&
             startEvent === 'touchend' ||
@@ -289,23 +341,14 @@ class PlyrAds {
     }
   }
 
-  // Merge defaults and options.
-  _mergedConfig(defaults, options) {
-    return {...defaults, ...options};
-  }
-
-  // Events are different on various devices. We det the correct events, based on userAgent.
-  _getStartEvents() {
-    let startEvents = ['click'];
-    
-    // For mobile users the start event will be one of
-    // touchstart, touchend and touchmove.
-    if (navigator.userAgent.match(/iPhone/i) ||
-        navigator.userAgent.match(/iPad/i) ||
-        navigator.userAgent.match(/Android/i)) {
-        startEvents = ['touchstart', 'touchend', 'touchmove'];
-    }
-    return startEvents;
+  /**
+   * Add event listeners
+   * @param {string} event - Event type
+   * @param {function} callback - Callback for when event occurs
+   */
+  on(event, callback) {
+    utils.on(this.elements.container, event, callback);
+    return this;
   }
 }
 
