@@ -36,6 +36,7 @@ const babelrc = {
         },
     ]
   ],
+  plugins: ['external-helpers'],
   exclude: 'node_modules/**',
 };
 

@@ -1,25 +1,21 @@
- 
 /**
  * TODO
  * - When seeking mid rolls start playing after seeked.
  *   Possible solution: Invoke discardAdBreak for every skipped mid-roll.
  */
 
-
-import defaults from './defaults';
-import { utils } from './utils';
+import defaults from "./defaults";
+import { utils } from "./utils";
 
 class PlyrAds {
-
   constructor(target, options) {
-    
     // Set config
     this.config = utils.mergeConfig(defaults, options);
 
     // Check if a adTagUrl us provided.
     if (!this.config.adTagUrl && this.config.debug) {
       if (this.config.debug) {
-        throw new Error('No adTagUrl provided.');
+        throw new Error("No adTagUrl provided.");
       }
       return;
     }
@@ -27,25 +23,26 @@ class PlyrAds {
     // Check if the Google IMA3 SDK is loaded.
     if (!window.google) {
       if (this.config.debug) {
-        throw new Error('The Google IMA3 SDK is not loaded.');
+        throw new Error("The Google IMA3 SDK is not loaded.");
       }
       return;
     }
-    
+
     this.plyr = target;
     this.startEvents = utils.getStartEvents();
     this.adDisplayContainer;
     this.adDisplayElement;
     this.adsManager;
     this.adsLoader;
-    this.videoElement = document.createElement('video');
+    this.adCuePoints;
+    this.videoElement = document.createElement("video");
 
     // Setup the ad display container.
     this._setupAdDisplayContainer();
-    
+
     // Setup the IMA SDK.
     this._setupIMA();
-  
+
     // Set listeners on the Plyr instance.
     this._setupListeners();
   }
@@ -54,20 +51,25 @@ class PlyrAds {
     const { container } = this.plyr.elements;
 
     // Create ads loader.
-    this.adsLoader = new google.ima.AdsLoader(this.adDisplayContainer, this.videoElement);
+    this.adsLoader = new google.ima.AdsLoader(
+      this.adDisplayContainer,
+      this.videoElement
+    );
 
     // Tell the adsLoader we are handling ad breaks manually.
     this.adsLoader.getSettings().setAutoPlayAdBreaks(false);
 
     // Listen and respond to ads loaded and error events.
     this.adsLoader.addEventListener(
-        google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
-        adEvent => this._onAdsManagerLoaded(adEvent),
-        false);
+      google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
+      adEvent => this._onAdsManagerLoaded(adEvent),
+      false
+    );
     this.adsLoader.addEventListener(
-        google.ima.AdErrorEvent.Type.AD_ERROR,
-        adError => this._onAdError(adError),
-        false);
+      google.ima.AdErrorEvent.Type.AD_ERROR,
+      adError => this._onAdError(adError),
+      false
+    );
 
     // Request video ads.
     const adsRequest = new google.ima.AdsRequest();
@@ -89,16 +91,25 @@ class PlyrAds {
     // Get the ads manager.
     const adsRenderingSettings = new google.ima.AdsRenderingSettings();
     adsRenderingSettings.restoreCustomPlaybackStateOnAdBreakComplete = true;
+    adsRenderingSettings.enablePreloading = true;
 
     // The SDK is polling currentTime on the contentPlayback. And needs a duration
     // so it can determine when to start the mid- and post-roll.
     this.adsManager = adsManagerLoadedEvent.getAdsManager(
-      videoElement, adsRenderingSettings);
+      videoElement,
+      adsRenderingSettings
+    );
+
+    // Get the cue points for any mid-rolls by filtering out the pre- and post-roll.
+    this.adsCuePoints = this.adsManager
+      .getCuePoints()
+      .filter(x => x > 0 && x !== -1);
 
     // Add listeners to the required events.
     this.adsManager.addEventListener(
-        google.ima.AdErrorEvent.Type.AD_ERROR,
-        adError => this._onAdError(adError));
+      google.ima.AdErrorEvent.Type.AD_ERROR,
+      adError => this._onAdError(adError)
+    );
     // this.adsManager.addEventListener(
     //     google.ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED,
     //     adEvent => this._onContentPauseRequested(adEvent));
@@ -106,29 +117,28 @@ class PlyrAds {
     //     google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
     //     adEvent => this._onContentResumeRequested(adEvent));
     this.adsManager.addEventListener(
-        google.ima.AdEvent.Type.ALL_ADS_COMPLETED,
-        adEvent => this._onAdEvent(adEvent));
+      google.ima.AdEvent.Type.ALL_ADS_COMPLETED,
+      adEvent => this._onAdEvent(adEvent)
+    );
     this.adsManager.addEventListener(
-        google.ima.AdEvent.Type.AD_BREAK_READY,
-        adEvent => {
-          this.plyr.pause();
-          this.adsManager.start();
-        });
+      google.ima.AdEvent.Type.AD_BREAK_READY,
+      adEvent => this._onAdEvent(adEvent)
+    );
 
     // Listen to any additional events, if necessary.
+    this.adsManager.addEventListener(google.ima.AdEvent.Type.LOADED, adEvent =>
+      this._onAdEvent(adEvent)
+    );
+    this.adsManager.addEventListener(google.ima.AdEvent.Type.STARTED, adEvent =>
+      this._onAdEvent(adEvent)
+    );
     this.adsManager.addEventListener(
-        google.ima.AdEvent.Type.LOADED,
-        adEvent => this._onAdEvent(adEvent));
-    this.adsManager.addEventListener(
-        google.ima.AdEvent.Type.STARTED,
-        adEvent => this._onAdEvent(adEvent));
-    this.adsManager.addEventListener(
-        google.ima.AdEvent.Type.COMPLETE,
-        adEvent => this._onAdEvent(adEvent) );
+      google.ima.AdEvent.Type.COMPLETE,
+      adEvent => this._onAdEvent(adEvent)
+    );
   }
 
   _onAdEvent(adEvent) {
-    
     const { container } = this.plyr.elements;
 
     // Retrieve the ad from the event. Some events (e.g. ALL_ADS_COMPLETED)
@@ -136,36 +146,44 @@ class PlyrAds {
     const ad = adEvent.getAd();
 
     // let intervalTimer;
-    
+
     switch (adEvent.type) {
       case google.ima.AdEvent.Type.LOADED:
-        console.log('LOADED');
-        this.adDisplayElement.style.display = 'block';
         // This is the first event sent for an ad - it is possible to
         // determine whether the ad is a video ad or an overlay.
+
+        // Show the ad display element.
+        this.adDisplayElement.style.display = "block";
+
         if (!ad.isLinear()) {
-          
           // Position AdDisplayContainer correctly for overlay.
           ad.width = container.offsetWidth;
           ad.height = container.offsetHeight;
         }
         break;
       case google.ima.AdEvent.Type.STARTED:
-        console.log('STARTED');
-        // Show the ad display element.
         // This event indicates the ad has started - the video player
         // can adjust the UI, for example display a pause button and
         // remaining time.
+
+        this.plyr.pause();
+
         // if (ad.isLinear()) {
-          // For a linear ad, a timer can be started to poll for
-          // the remaining time.
-          // intervalTimer = setInterval(
-          //     () => {
-          //       let remainingTime = this.adsManager.getRemainingTime();
-          //       console.log(remainingTime);
-          //     },
-          //     300); // every 300ms
+        // For a linear ad, a timer can be started to poll for
+        // the remaining time.
+        // intervalTimer = setInterval(
+        //     () => {
+        //       let remainingTime = this.adsManager.getRemainingTime();
+        //       console.log(remainingTime);
+        //     },
+        //     300); // every 300ms
         // }
+        break;
+      case google.ima.AdEvent.Type.AD_BREAK_READY:
+        // This event indicates that a mid-roll ad is ready to start.
+        // We pause the player and tell the adsManager to start playing the ad.
+        this.plyr.pause();
+        this.adsManager.start();
         break;
       case google.ima.AdEvent.Type.COMPLETE:
         // This event indicates the ad has finished - the video player
@@ -173,21 +191,19 @@ class PlyrAds {
         // remaining time detection.
         // clearInterval(intervalTimer);
 
-        this.adDisplayElement.style.display = 'none';
+        this.adDisplayElement.style.display = "none";
         if (this.plyr.currentTime < this.plyr.duration) {
           this.plyr.play();
         }
         break;
       case google.ima.AdEvent.Type.ALL_ADS_COMPLETED:
-        this._emitEvent('ALL_ADS_COMPLETED');
-        this.plyr.stop();
+        break;
       default:
         break;
     }
   }
 
   _onAdError(adErrorEvent) {
-    
     // Handle the error logging.
     this.adDisplayElement.remove();
 
@@ -196,16 +212,16 @@ class PlyrAds {
     }
 
     if (this.config.debug) {
+      console.log(adErrorEvent);
       throw new Error(adErrorEvent);
     }
   }
-  
+
   /**
    * This function is where you should setup UI for showing ads (e.g.
    * display ad timer countdown, disable seeking etc.)
    */
   _onContentPauseRequested() {
-
     // Pause the player.
     this.plyr.pause();
   }
@@ -216,14 +232,13 @@ class PlyrAds {
    * implement this function when necessary.
    */
   _onContentResumeRequested() {
-
     // Resume the player.
     this.plyr.play();
   }
 
   _setupAdDisplayContainer() {
     const { container, original } = this.plyr.elements;
-      
+
     // We assume the adContainer is the video container of the plyr element
     // that will house the ads.
     this.adDisplayContainer = new google.ima.AdDisplayContainer(container);
@@ -232,10 +247,10 @@ class PlyrAds {
 
     // The AdDisplayContainer call from google IMA sets the style attribute
     // by default. We remove the inline style and set it through the stylesheet.
-    this.adDisplayElement.removeAttribute('style');
-    
+    this.adDisplayElement.removeAttribute("style");
+
     // Set class name on the adDisplayContainer element.
-    this.adDisplayElement.setAttribute('class', 'plyr-ads');
+    this.adDisplayElement.setAttribute("class", "plyr-ads");
 
     // Play ads when clicked.
     this._setOnClickHandler(this.adDisplayElement, this._playAds);
@@ -247,8 +262,7 @@ class PlyrAds {
     // Initialize the container. Must be done via a user action on mobile devices.
     this.adDisplayContainer.initialize();
 
-    try { 
-      
+    try {
       // Initialize the ads manager. Ad rules playlist will start at this time.
       this.adsManager.init(
         container.offsetWidth,
@@ -259,9 +273,7 @@ class PlyrAds {
       // Call play to start showing the ad. Single video and overlay ads will
       // start at this time; the call will be ignored for ad rules.
       this.adsManager.start();
-
     } catch (adError) {
-
       // An error may be thrown if there was a problem with the VAST response.
       this.plyr.play();
       this.adDisplayElement.remove();
@@ -279,42 +291,37 @@ class PlyrAds {
    */
   _setupListeners() {
     const { container } = this.plyr.elements;
+    let currentTime;
 
     // Add listeners to the required events.
-    this.plyr.on('ended', event => {
+    this.plyr.on("ended", event => {
       this.adsLoader.contentComplete();
     });
 
-    this.plyr.on('timeupdate', event => {
+    this.plyr.on("timeupdate", event => {
       const { currentTime } = event.detail.plyr;
       this.videoElement.currentTime = Math.ceil(currentTime);
     });
-    
-    this.plyr.on('seeked', event => {
-      const { currentTime } = event.detail.plyr;
-      const cuePoints = this.adsManager.getCuePoints();
 
-      let adsSkipped = 0;
+    this.plyr.on(
+      "seeking",
+      event => (currentTime = event.detail.plyr.currentTime)
+    );
 
-      // Count the amount of mid-rolls which will be
-      // skipped.
-      for (let i = 0; i < cuePoints.length; i++) {
-        const cuePoint = cuePoints[i];
-        if (cuePoint < currentTime && cuePoint !== -1 && cuePoint !== 0) {
-          adsSkipped++;
+    this.plyr.on("seeked", event => {
+      const seekedTime = event.detail.plyr.currentTime;
+
+      for (let i = 0; i < this.adsCuePoints.length; i++) {
+        const cuePoint = this.adsCuePoints[i];
+        if (currentTime < cuePoint && cuePoint < seekedTime) {
+          this.adsManager.discardAdBreak();
+          this.adsCuePoints.splice(i, 1);
         }
-      }
-
-      // Discard ad breaks for every mid-roll skipped.
-      // This ensures the mid-rolls don't start running when the 
-      // video is seeked past a mid-roll.
-      for (let j = 0; j < adsSkipped; j++) {
-        this.adsManager.discardAdBreak();
       }
     });
 
     // Listen to the resizing of the window. And resize ad accordingly.
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
       this.adsManager.resize(
         container.offsetWidth,
         container.offsetHeight,
@@ -326,18 +333,24 @@ class PlyrAds {
   /**
    * Set start event listener on a DOM element and triggers the
    * callback when clicked.
-   * @param {HtmlElment} element - The element on which to set the listener 
+   * @param {HtmlElment} element - The element on which to set the listener
    * @param {Function} callback - The callback which will be invoked once triggered.
-   */ 
+   */
+
   _setOnClickHandler(element, callback) {
     for (let startEvent of this.startEvents) {
-      element.addEventListener(startEvent, (event) => {
-        if (event.type === 'touchend' &&
-            startEvent === 'touchend' ||
-            event.type === 'click') {
-          callback.call(this);
-        }
-      }, {once: true});
+      element.addEventListener(
+        startEvent,
+        event => {
+          if (
+            (event.type === "touchend" && startEvent === "touchend") ||
+            event.type === "click"
+          ) {
+            callback.call(this);
+          }
+        },
+        { once: true }
+      );
     }
   }
 
