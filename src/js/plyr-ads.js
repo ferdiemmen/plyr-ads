@@ -2,6 +2,7 @@
  * TODO
  * - When seeking mid rolls start playing after seeked.
  *   Possible solution: Invoke discardAdBreak for every skipped mid-roll.
+ * - Send out ".on" events when specific ad events happen.
  */
 
 import defaults from "./defaults";
@@ -12,12 +13,12 @@ class PlyrAds {
     // Set config
     this.config = utils.mergeConfig(defaults, options);
 
-    // Check if a adTagUrl us provided.
-    if (!this.config.adTagUrl && this.config.debug) {
+    // Check if an adTagUrl is provided.
+    if (!this.config.adTagUrl) {
       if (this.config.debug) {
         throw new Error("No adTagUrl provided.");
       }
-      return;
+      return this;
     }
 
     // Check if the Google IMA3 SDK is loaded.
@@ -25,7 +26,7 @@ class PlyrAds {
       if (this.config.debug) {
         throw new Error("The Google IMA3 SDK is not loaded.");
       }
-      return;
+      return this;
     }
 
     this.plyr = target;
@@ -35,6 +36,8 @@ class PlyrAds {
     this.adsManager;
     this.adsLoader;
     this.adCuePoints;
+    this.currentAd;
+    this.events = {};
     this.videoElement = document.createElement("video");
 
     // Setup the ad display container.
@@ -110,12 +113,12 @@ class PlyrAds {
       google.ima.AdErrorEvent.Type.AD_ERROR,
       adError => this._onAdError(adError)
     );
-    // this.adsManager.addEventListener(
-    //     google.ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED,
-    //     adEvent => this._onContentPauseRequested(adEvent));
-    // this.adsManager.addEventListener(
-    //     google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
-    //     adEvent => this._onContentResumeRequested(adEvent));
+    this.adsManager.addEventListener(
+      google.ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED,
+      adEvent => this._onAdEvent(adEvent));
+    this.adsManager.addEventListener(
+      google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
+      adEvent => this._onAdEvent(adEvent));
     this.adsManager.addEventListener(
       google.ima.AdEvent.Type.ALL_ADS_COMPLETED,
       adEvent => this._onAdEvent(adEvent)
@@ -145,6 +148,10 @@ class PlyrAds {
     // don't have ad object associated.
     const ad = adEvent.getAd();
 
+    // Set the currently played ad. This information could be used by callback
+    // events.
+    this.currentAd = ad;
+
     // let intervalTimer;
 
     switch (adEvent.type) {
@@ -154,6 +161,8 @@ class PlyrAds {
 
         // Show the ad display element.
         this.adDisplayElement.style.display = "block";
+
+        this._handleEventListeners("LOADED");
 
         if (!ad.isLinear()) {
           // Position AdDisplayContainer correctly for overlay.
@@ -167,6 +176,7 @@ class PlyrAds {
         // remaining time.
 
         this.plyr.pause();
+        this._handleEventListeners("STARTED");
 
         // if (ad.isLinear()) {
         // For a linear ad, a timer can be started to poll for
@@ -179,17 +189,25 @@ class PlyrAds {
         //     300); // every 300ms
         // }
         break;
+      case google.ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED:
+        this._handleEventListeners("CONTENT_PAUSE_REQUESTED");
+        break;
+      case google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED:
+        this._handleEventListeners("CONTENT_RESUME_REQUESTED");
+        break;
       case google.ima.AdEvent.Type.AD_BREAK_READY:
         // This event indicates that a mid-roll ad is ready to start.
         // We pause the player and tell the adsManager to start playing the ad.
         this.plyr.pause();
         this.adsManager.start();
+        this._handleEventListeners("AD_BREAK_READY");
         break;
       case google.ima.AdEvent.Type.COMPLETE:
         // This event indicates the ad has finished - the video player
         // can perform appropriate UI actions, such as removing the timer for
         // remaining time detection.
         // clearInterval(intervalTimer);
+        this._handleEventListeners("COMPLETE");
 
         this.adDisplayElement.style.display = "none";
         if (this.plyr.currentTime < this.plyr.duration) {
@@ -197,6 +215,7 @@ class PlyrAds {
         }
         break;
       case google.ima.AdEvent.Type.ALL_ADS_COMPLETED:
+        this._handleEventListeners("ALL_ADS_COMPLETED");
         break;
       default:
         break;
@@ -212,28 +231,8 @@ class PlyrAds {
     }
 
     if (this.config.debug) {
-      console.log(adErrorEvent);
       throw new Error(adErrorEvent);
     }
-  }
-
-  /**
-   * This function is where you should setup UI for showing ads (e.g.
-   * display ad timer countdown, disable seeking etc.)
-   */
-  _onContentPauseRequested() {
-    // Pause the player.
-    this.plyr.pause();
-  }
-
-  /**
-   * This function is where you should ensure that your UI is ready
-   * to play content. It is the responsibility of the Publisher to
-   * implement this function when necessary.
-   */
-  _onContentResumeRequested() {
-    // Resume the player.
-    this.plyr.play();
   }
 
   _setupAdDisplayContainer() {
@@ -331,6 +330,15 @@ class PlyrAds {
   }
 
   /**
+   * Handles callbacks after an ad event was invoked.
+   */
+  _handleEventListeners(event) {
+    if (typeof(this.events[event]) !== 'undefined') {
+      this.events[event].call(this);
+    }
+  }
+
+  /**
    * Set start event listener on a DOM element and triggers the
    * callback when clicked.
    * @param {HtmlElment} element - The element on which to set the listener
@@ -360,7 +368,7 @@ class PlyrAds {
    * @param {function} callback - Callback for when event occurs
    */
   on(event, callback) {
-    utils.on(this.elements.container, event, callback);
+    this.events[event] = callback;
     return this;
   }
 }
