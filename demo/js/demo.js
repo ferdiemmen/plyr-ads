@@ -1,8 +1,7 @@
 
 (function(Plyr, PlyrAds) {
 
-  // window.player = new Plyr(document.querySelectorAll('.js-player'));
-  window.player = new Plyr(document.getElementById('player'));
+  window.player = new Plyr(document.querySelectorAll('.js-player'));
 
   window.ads = PlyrAds.init(window.player, {
     // VPAID 2.0 Linear
@@ -19,7 +18,7 @@
   });
 
   window.ads.on('ALL_ADS_COMPLETED', function() {
-    console.log(this);
+    console.log('ALL_ADS_COMPLETED');
   });
 
   window.ads.on('COMPLETE', function() {

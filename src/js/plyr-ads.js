@@ -2,7 +2,6 @@
  * TODO
  * - When seeking mid rolls start playing after seeked.
  *   Possible solution: Invoke discardAdBreak for every skipped mid-roll.
- * - Send out ".on" events when specific ad events happen.
  */
 
 import defaults from "./defaults";
